@@ -768,6 +768,202 @@ function More({sub,setSub,st,reset,practice,tests,setTests,done,setDone,goChamp}
     {sub==="about"&&<About goChamp={goChamp}/>}</div>;
 }
 
+function MathSprintAccount({id,setId}){
+  const [mode,setMode]=useState("signup");
+  const [name,setName]=useState("");
+  const [email,setEmail]=useState("");
+  const [password,setPassword]=useState("");
+  const [age,setAge]=useState("13");
+  const [guardianEmail,setGuardianEmail]=useState("");
+  const [busy,setBusy]=useState(false);
+  const [message,setMessage]=useState("");
+
+  const supabase=window.mathSprintSupabase;
+
+  useEffect(()=>{
+    let active=true;
+    supabase.auth.getSession().then(async({data})=>{
+      if(!active)return;
+      if(data.session) await loadProfile(data.session.user);
+    });
+    const {data:{subscription}}=supabase.auth.onAuthStateChange(
+      async(_event,session)=>{
+        if(session) await loadProfile(session.user);
+        else if(active) setId(null);
+      }
+    );
+    return()=>{
+      active=false;
+      subscription.unsubscribe();
+    };
+  },[]);
+
+  async function loadProfile(user){
+    const {data,error}=await supabase
+      .from("student_profiles")
+      .select("*")
+      .eq("user_id",user.id)
+      .maybeSingle();
+
+    if(error){setMessage(error.message);return;}
+
+    if(data){
+      setId({
+        uid:user.id,
+        email:user.email,
+        name:data.display_name,
+        verified:data.account_status==="active",
+        status:data.account_status
+      });
+    }
+  }
+
+  async function submit(e){
+    e.preventDefault();
+    setBusy(true);
+    setMessage("");
+
+    try{
+      if(mode==="signup"){
+        const years=Number(age);
+        if(!name.trim())throw new Error("Enter your name.");
+        if(password.length<8)throw new Error("Use at least 8 characters for your password.");
+        if(years<8||years>16)throw new Error("MathSprint accounts are for ages 8–16.");
+        if(years<13&&!guardianEmail.trim())
+          throw new Error("Please enter a parent or guardian's email.");
+
+        const {data,error}=await supabase.auth.signUp({
+          email,
+          password,
+          options:{
+            data:{
+              display_name:name.trim(),
+              age:years,
+              guardian_email:guardianEmail.trim()
+            }
+          }
+        });
+        if(error)throw error;
+
+        if(data.session){
+          const status=years<13?"pending_guardian":"active";
+          const ageGroup=years<=10?"Junior":years<=13?"Intermediate":"Senior";
+
+          const {error:profileError}=await supabase
+            .from("student_profiles")
+            .insert({
+              user_id:data.user.id,
+              display_name:name.trim(),
+              age_group:ageGroup,
+              age_group_verified:false,
+              account_status:status
+            });
+
+          if(profileError)throw profileError;
+
+          if(years<13){
+            const {error:consentError}=await supabase
+              .from("guardian_consents")
+              .insert({
+                student_id:data.user.id,
+                guardian_email:guardianEmail.trim(),
+                status:"pending"
+              });
+            if(consentError)throw consentError;
+          }
+
+          await loadProfile(data.user);
+          setMessage(years<13
+            ?"Account created. Guardian approval is still required."
+            :"Account created successfully!");
+        }else{
+          setMessage("Check your email to confirm your account, then sign in.");
+          setMode("login");
+        }
+      }else{
+        const {data,error}=await supabase.auth.signInWithPassword({
+          email,password
+        });
+        if(error)throw error;
+        if(data.user)await loadProfile(data.user);
+      }
+    }catch(error){
+      setMessage(error.message||"Something went wrong. Please try again.");
+    }finally{
+      setBusy(false);
+    }
+  }
+
+  async function signOut(){
+    await supabase.auth.signOut();
+    setId(null);
+    setMessage("Signed out.");
+  }
+
+  return <div className="space-y-4 pop">
+    <h1 className="text-2xl font-extrabold">Your MathSprint Account</h1>
+    <div className="card p-5 space-y-4">
+      {id?<>
+        <div className="text-lg font-bold">Welcome, {id.name||"MathSprinter"}!</div>
+        <p className="mut text-sm">{id.email}</p>
+        <p className="text-sm font-semibold">
+          Account status: {id.status||"Pending"}
+        </p>
+        {id.status==="pending_guardian"&&
+          <p className="text-sm text-amber-600">
+            Guardian approval is required before ranked competitions can be accessed.
+          </p>}
+        <button onClick={signOut} className="w-full rounded-2xl p-3 card font-semibold">
+          Sign out
+        </button>
+      </>:<>
+        <div className="grid grid-cols-2 gap-2">
+          <button onClick={()=>setMode("signup")}
+            className={`p-3 rounded-xl font-bold ${mode==="signup"?"bg-indigo-600 text-white":"card"}`}>
+            Create account
+          </button>
+          <button onClick={()=>setMode("login")}
+            className={`p-3 rounded-xl font-bold ${mode==="login"?"bg-indigo-600 text-white":"card"}`}>
+            Sign in
+          </button>
+        </div>
+        <form onSubmit={submit} className="space-y-3">
+          {mode==="signup"&&<>
+            <input className="w-full p-3 rounded-xl border bd bg-transparent"
+              placeholder="Student display name" value={name}
+              onChange={e=>setName(e.target.value)} required/>
+            <label className="block text-sm font-semibold">Your age</label>
+            <input className="w-full p-3 rounded-xl border bd bg-transparent"
+              type="number" min="8" max="16" value={age}
+              onChange={e=>setAge(e.target.value)} required/>
+            {Number(age)<13&&<>
+              <label className="block text-sm font-semibold">Parent/guardian email</label>
+              <input className="w-full p-3 rounded-xl border bd bg-transparent"
+                type="email" placeholder="Parent or guardian email"
+                value={guardianEmail}
+                onChange={e=>setGuardianEmail(e.target.value)} required/>
+              <p className="mut text-xs">
+                Guardian approval is required. This form does not itself verify consent.
+              </p>
+            </>}
+          </>}
+          <input className="w-full p-3 rounded-xl border bd bg-transparent"
+            type="email" placeholder="Email address" value={email}
+            onChange={e=>setEmail(e.target.value)} required/>
+          <input className="w-full p-3 rounded-xl border bd bg-transparent"
+            type="password" placeholder="Password" value={password}
+            onChange={e=>setPassword(e.target.value)} required/>
+          <button disabled={busy}
+            className="w-full p-3 rounded-2xl bg-indigo-600 text-white font-bold disabled:opacity-50">
+            {busy?"Please wait...":mode==="signup"?"Create my account":"Sign in"}
+          </button>
+        </form>
+      </>}
+      {message&&<p className="text-sm font-semibold">{message}</p>}
+    </div>
+  </div>;
+}
+
 /* ============ APP ============ */
 function App(){
   const [st,setSt]=useState(load);
@@ -817,7 +1013,7 @@ function App(){
     }
   };
   const playing=screen==="play";
-  const TABS=[["train","Train","home"],["live","Live","users"],["compete","Compete","trophy"],["champ","Championship","crown"],["more","More","menu"]];
+  const TABS=[["train","Train","home"],["live","Live","users"],["compete","Compete","trophy"],["champ","Championship","crown"],["account","Account","user"],["more","More","menu"]];
   const ORDER=TABS.map(t=>t[0]),goTab=k=>{setDir(ORDER.indexOf(k)>=ORDER.indexOf(tab)?1:-1);if(k===tab&&k==="more")setSub(null);setTab(k);if(k==="train"&&screen==="play")setScreen("home")};
   return <div className="max-w-md mx-auto px-4 pt-5 pb-28 min-h-screen">
     <div key={`${tab}|${screen}|${run}`} className={dir>=0?"slide-r":"slide-l"}>
@@ -828,6 +1024,7 @@ function App(){
     </div>
     <div className={tab==="live"?(dir>=0?"slide-r":"slide-l"):""} style={{display:tab==="live"?"block":"none"}}><Live/></div>
     <div key={`${tab}|${sub}`} className={dir>=0?"slide-r":"slide-l"}>
+    {tab==="account"&&<MathSprintAccount id={id} setId={setId}/>}
     {tab==="compete"&&<Compete id={id} setId={setId} db={db} info={info} mine={myMine} board={board} startComp={startComp} nick={nick} setNick={setNick} goChamp={()=>setTab("champ")}/>}
     {tab==="champ"&&<Championship id={id} db={db} board={board} startComp={startComp} info={champ} name={dn}/>}
     {tab==="more"&&<More sub={sub} setSub={setSub} st={st} reset={()=>setSt(blank())} practice={t=>{setCfg({...cfg,topic:t});setTab("train");setScreen("home")}} tests={tests} setTests={setTests} done={done} setDone={setDone} goChamp={()=>setTab("champ")}/>}
