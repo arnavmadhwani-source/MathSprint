@@ -39,6 +39,14 @@ button:active:not(:disabled){transform:scale(.96)}
 @keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.confetti{display:none}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  window.mathSprintSupabase = window.supabase.createClient(
+    "https://jeawjnqnsfsmoprblhgn.supabase.co",
+    "sb_publishable_IatX9oAvYKN4J5_LRxcw0Q_WgEGd26Y"
+  );
+  console.log("MathSprint Supabase initialised!");
+</script>
 </head>
 <body>
 <div id="root"></div>
