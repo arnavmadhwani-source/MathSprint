@@ -1,0 +1,837 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>MathSprint</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<script>tailwind.config={darkMode:'media'}</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<style>
+:root{--bg:#f5f6fb;--card:#ffffff;--fg:#0f172a;--mut:#64748b;--bd:#e5e8f0;--sh:0 1px 2px rgba(15,23,42,.04),0 12px 28px -16px rgba(15,23,42,.18);box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0f1e;--card:#131a2e;--fg:#e8ecf8;--mut:#93a0bd;--bd:#232c47;--sh:0 12px 28px -16px rgba(0,0,0,.7)}}
+:root[data-theme="dark"]{--bg:#0a0f1e;--card:#131a2e;--fg:#e8ecf8;--mut:#93a0bd;--bd:#232c47;--sh:0 12px 28px -16px rgba(0,0,0,.7)}
+html,body{background:var(--bg);color:var(--fg);font-family:"Plus Jakarta Sans",Inter,system-ui,-apple-system,"Segoe UI",sans-serif;margin:0;-webkit-tap-highlight-color:transparent}
+body{background-image:radial-gradient(800px 380px at 0% -8%,rgba(99,102,241,.14),transparent 70%),radial-gradient(640px 360px at 100% 0%,rgba(217,70,239,.10),transparent 70%);background-repeat:no-repeat;background-attachment:fixed}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:22px;box-shadow:var(--sh);transition:transform .2s cubic-bezier(.2,.8,.2,1),box-shadow .2s,border-color .2s}
+.mut{color:var(--mut)}.bd{border-color:var(--bd)}
+button{position:relative;overflow:hidden;transition:transform .15s cubic-bezier(.2,.8,.2,1),opacity .15s,background-color .2s,color .2s}
+button:active:not(:disabled){transform:scale(.96)}
+.ripple{position:absolute;border-radius:50%;background:currentColor;opacity:.16;transform:scale(0);animation:rp .6s ease-out forwards;pointer-events:none}
+@keyframes rp{to{transform:scale(1);opacity:0}}
+@keyframes rise{from{opacity:0;transform:translateY(18px) scale(.98)}to{opacity:1;transform:none}}
+.pop>*{animation:rise .5s cubic-bezier(.2,.8,.2,1) backwards}
+.pop>*:nth-child(1){animation-delay:0.000s}.pop>*:nth-child(2){animation-delay:0.045s}.pop>*:nth-child(3){animation-delay:0.090s}.pop>*:nth-child(4){animation-delay:0.135s}.pop>*:nth-child(5){animation-delay:0.180s}.pop>*:nth-child(6){animation-delay:0.225s}.pop>*:nth-child(7){animation-delay:0.270s}.pop>*:nth-child(8){animation-delay:0.315s}.pop>*:nth-child(9){animation-delay:0.360s}.pop>*:nth-child(10){animation-delay:0.405s}.pop>*:nth-child(11){animation-delay:0.450s}.pop>*:nth-child(12){animation-delay:0.495s}.pop>*:nth-child(n+13){animation-delay:.5s}
+@keyframes pageIn{from{opacity:0;transform:translateX(var(--dx,40px)) scale(.97);filter:blur(5px)}to{opacity:1;transform:none;filter:blur(0)}}
+.slide-r{--dx:40px;animation:pageIn .42s cubic-bezier(.2,.8,.2,1) backwards}
+.slide-l{--dx:-40px;animation:pageIn .42s cubic-bezier(.2,.8,.2,1) backwards}
+@keyframes bob{0%{transform:translateY(0) scale(1)}40%{transform:translateY(-7px) scale(1.28)}100%{transform:translateY(-2px) scale(1.1)}}
+.tab-on{display:inline-block;animation:bob .55s cubic-bezier(.34,1.56,.64,1) both}
+@keyframes drawb{from{stroke-dashoffset:40}to{stroke-dashoffset:0}}
+.lg-b{stroke-dasharray:40;animation:drawb .8s ease-out both}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(3px)}}
+.lg-a{animation:nudge 1.8s ease-in-out infinite}
+.grad{background:linear-gradient(90deg,#6366f1,#d946ef);-webkit-background-clip:text;background-clip:text;color:transparent;font-style:italic;padding-right:2px}
+.confetti{position:absolute;top:-16px;width:8px;height:14px;border-radius:2px;animation:fall linear infinite}
+@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
+@media (prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.confetti{display:none}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const {useState,useEffect,useRef,useMemo}=React;
+
+/* ============ ICONS (Lucide-style paths) ============ */
+const circ=(x,y,r)=>`M${x-r} ${y}a${r} ${r} 0 1 0 ${2*r} 0a${r} ${r} 0 1 0 ${-2*r} 0`;
+const ICONS={
+ zap:["M13 2 3 14h9l-1 8 10-12h-9l1-8z"],
+ timer:[circ(12,13,8),"M12 9v4l2 2","M9 2h6"],
+ bulb:["M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5","M9 18h6","M10 22h4"],
+ check:["M20 6 9 17l-5-5"],x:["M18 6 6 18","m6 6 12 12"],
+ flame:["M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.1-2.1-.2-4 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.2.4-2.3 1-3a2.5 2.5 0 0 0 2.500 2.500z"],
+ target:[circ(12,12,10),circ(12,12,6),circ(12,12,2)],
+ share:["M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8","m16 6-4-4-4 4","M12 2v13"],
+ chart:["M3 3v18h18","M18 17V9","M13 17V5","M8 17v-3"],
+ copy:["M10 8h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H10a2 2 0 0 1-2-2V10a2 2 0 0 1 2-2z","M4 16a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2"],
+ home:["m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z","M9 22V12h6v10"],
+ arrow:["M5 12h14","m12 5 7 7-7 7"],
+ crown:["m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7z","M3 20h18"],
+ menu:["M4 6h16","M4 12h16","M4 18h16"],
+ users:["M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",circ(9,7,4),"M22 21v-2a4 4 0 0 0-3-3.87","M16 3.13a4 4 0 0 1 0 7.75"],
+ trophy:["M6 9H4.5a2.5 2.5 0 0 1 0-5H6","M18 9h1.5a2.5 2.5 0 0 0 0-5H18","M4 22h16","M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22","M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22","M18 2H6v7a6 6 0 0 0 12 0V2z"],
+ cal:["M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z","M16 2v4","M8 2v4","M3 10h18"],
+ trash:["M3 6h18","M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6","M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"],
+};
+const Icon=({n,s=20,c=""})=><svg width={s} height={s} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={c}>{ICONS[n].map((d,i)=><path key={i} d={d}/>)}</svg>;
+
+/* ============ RANDOM + MATH HELPERS ============ */
+let _s=1;
+const setSeed=s=>{_s=s|0};
+const rnd=()=>{_s=(_s+0x6D2B79F5)|0;let t=Math.imul(_s^(_s>>>15),1|_s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296};
+const ri=(a,b)=>a+Math.floor(rnd()*(b-a+1));
+const pick=a=>a[ri(0,a.length-1)];
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=ri(0,i);[a[i],a[j]]=[a[j],a[i]]}return a};
+const gcd=(a,b)=>b?gcd(b,a%b):a;
+const fr=(n,d)=>{const g=gcd(n,d);return d/g===1?`${n/g}`:`${n/g}/${d/g}`};
+const C=(n,k)=>{let r=1;for(let i=1;i<=k;i++)r=r*(n-k+i)/i;return Math.round(r)};
+const mp=(b,e,m)=>{let r=1;b%=m;while(e>0){if(e&1)r=r*b%m;b=b*b%m;e>>=1}return r};
+
+/* ============ PROBLEM BANK ============
+ Each generator returns {q, ans, wrong?, hints:[nudge, formula], steps:[...]}.
+ Add new generators to GEN[topic][level] — or push custom school sets there. */
+const TOPICS=["Algebra","Geometry","Number Theory","Probability","Combinatorics","Ratios & Percent","Coordinate Geometry","Logic & Puzzles"];
+const LEVELS=["Warm-up","Club","Olympiad"];
+const TRI=[[3,4,5],[5,12,13],[8,15,17],[7,24,25]];
+const COP=[[3,4],[2,5],[3,5],[4,7],[5,6],[2,9],[7,8]];
+const HER=[[13,14,15,84],[5,5,6,12],[10,13,13,60],[17,17,16,120]];
+const GEN={
+Algebra:[
+ [()=>{const x=ri(2,12),a=ri(2,9),b=ri(1,20);return{q:`Solve for x: ${a}x + ${b} = ${a*x+b}`,ans:`${x}`,hints:[`Undo the + ${b} first.`,`Subtract ${b} from both sides, then divide by ${a}.`],steps:[`Subtract ${b}: ${a}x = ${a*x}`,`Divide by ${a}: x = ${x}`]}},
+  ()=>{const x=ri(8,30),y=ri(1,7);return{q:`Two numbers add to ${x+y} and differ by ${x-y}. What is the larger number?`,ans:`${x}`,hints:["Write two equations: one for the sum, one for the difference.","Adding x + y = S and x − y = D gives 2x = S + D."],steps:[`Add the equations: 2x = ${x+y} + ${x-y} = ${2*x}`,`x = ${x}`]}}],
+ [()=>{const S=ri(4,12),P=ri(1,20);return{q:`If x + y = ${S} and xy = ${P}, what is x² + y²?`,ans:`${S*S-2*P}`,hints:["Try squaring x + y.","(x + y)² = x² + 2xy + y²"],steps:[`(x + y)² = ${S}² = ${S*S}`,`x² + y² = ${S*S} − 2(${P}) = ${S*S-2*P}`]}},
+  ()=>{const a=ri(1,9),d=ri(2,6),n=ri(8,20),s=n*(2*a+(n-1)*d)/2;return{q:`Find the sum of the first ${n} terms of the arithmetic sequence starting at ${a} with common difference ${d}.`,ans:`${s}`,hints:["Pair the first and last terms.","Sₙ = n(2a + (n − 1)d) / 2"],steps:[`2a + (n−1)d = ${2*a} + ${(n-1)*d} = ${2*a+(n-1)*d}`,`S = ${n} × ${2*a+(n-1)*d} / 2 = ${s}`]}}],
+ [()=>{const k=ri(3,9);return{q:`If x + 1/x = ${k}, find x² + 1/x².`,ans:`${k*k-2}`,hints:["Square the given equation.","(x + 1/x)² = x² + 2 + 1/x²"],steps:[`${k}² = x² + 2 + 1/x²`,`x² + 1/x² = ${k*k} − 2 = ${k*k-2}`]}},
+  ()=>{const S=ri(3,8),P=ri(1,12);return{q:`If a + b = ${S} and ab = ${P}, find a³ + b³.`,ans:`${S**3-3*S*P}`,hints:["Cube a + b and look for a³ + b³ inside.","a³ + b³ = (a + b)³ − 3ab(a + b)"],steps:[`(a+b)³ = ${S**3}`,`3ab(a+b) = 3·${P}·${S} = ${3*S*P}`,`a³ + b³ = ${S**3} − ${3*S*P} = ${S**3-3*S*P}`]}}]],
+Geometry:[
+ [()=>{const [a,b,c]=pick(TRI),k=ri(1,3);return{q:`A right triangle has legs ${a*k} and ${b*k}. What is the hypotenuse?`,ans:`${c*k}`,hints:["Which theorem relates the sides of a right triangle?","a² + b² = c²"],steps:[`${(a*k)**2} + ${(b*k)**2} = ${(c*k)**2}`,`c = ${c*k}`]}},
+  ()=>{const A=ri(30,80),B=ri(30,80);return{q:`Two angles of a triangle measure ${A}° and ${B}°. What is the third angle (in degrees)?`,ans:`${180-A-B}`,hints:["Angles in a triangle add up to a fixed total.","Sum of angles = 180°"],steps:[`${A} + ${B} = ${A+B}`,`180 − ${A+B} = ${180-A-B}`]}}],
+ [()=>{const n=pick([5,6,8,9,10,12]),a=180*(n-2)/n;return{q:`What is each interior angle (in degrees) of a regular ${n}-gon?`,ans:`${a}`,hints:["First find the total of all interior angles.","Sum = 180(n − 2); divide by n."],steps:[`Sum = 180 × ${n-2} = ${180*(n-2)}`,`Each angle = ${180*(n-2)} / ${n} = ${a}°`]}},
+  ()=>{const [a,b,c]=pick(TRI),k=ri(1,3);return{q:`A right triangle has hypotenuse ${c*k} and one leg ${a*k}. What is its area?`,ans:`${a*b*k*k/2}`,hints:["Find the missing leg first.","Area = ½ × leg × leg"],steps:[`Other leg = √(${(c*k)**2} − ${(a*k)**2}) = ${b*k}`,`Area = ½ × ${a*k} × ${b*k} = ${a*b*k*k/2}`]}}],
+ [()=>{const n=ri(7,14);return{q:`How many diagonals does a convex ${n}-sided polygon have?`,ans:`${n*(n-3)/2}`,hints:["Each vertex connects to some non-adjacent vertices. How many?","n(n − 3) / 2"],steps:[`Each vertex: ${n} − 3 = ${n-3} diagonals`,`Each is counted twice: ${n}×${n-3}/2 = ${n*(n-3)/2}`]}},
+  ()=>{const [a,b,c,A]=pick(HER),k=ri(1,3),s=(a+b+c)*k/2;return{q:`A triangle has sides ${a*k}, ${b*k}, ${c*k}. What is its area?`,ans:`${A*k*k}`,hints:["Heron’s formula, or drop an altitude.","Area = √(s(s−a)(s−b)(s−c)), s = half the perimeter"],steps:[`s = ${s}`,`Area = √(${s}·${s-a*k}·${s-b*k}·${s-c*k}) = ${A*k*k}`]}}]],
+"Number Theory":[
+ [()=>{const [a,b]=pick(COP),g=ri(2,9);return{q:`What is the greatest common divisor of ${a*g} and ${b*g}?`,ans:`${g}`,hints:["Factor each number.","GCD = product of shared prime factors"],steps:[`${a*g} = ${g} × ${a}, ${b*g} = ${g} × ${b}`,`${a} and ${b} share no factor, so GCD = ${g}`]}},
+  ()=>{const m=ri(5,13),q=ri(5,20),r=ri(1,m-1),N=q*m+r;return{q:`What is the remainder when ${N} is divided by ${m}?`,ans:`${r}`,hints:["Find the largest multiple of the divisor below the number.",`${N} = ${m}q + r`],steps:[`${m} × ${q} = ${m*q}`,`${N} − ${m*q} = ${r}`]}}],
+ [()=>{const [p,q]=shuffle([2,3,5,7]),a=ri(1,4),b=ri(1,3);return{q:`How many positive divisors does ${p}^${a} · ${q}^${b} have?`,ans:`${(a+1)*(b+1)}`,hints:["A divisor picks a power of each prime.","Count = (a + 1)(b + 1)"],steps:[`Powers of ${p}: 0…${a} → ${a+1} choices`,`Powers of ${q}: 0…${b} → ${b+1} choices`,`${a+1} × ${b+1} = ${(a+1)*(b+1)}`]}},
+  ()=>{const b=pick([2,3,7,8]),e=ri(20,99),r=mp(b,e,10);return{q:`What is the units digit of ${b}^${e}?`,ans:`${r}`,hints:["Units digits of powers repeat in a cycle.","The cycle length is 4 — use the exponent mod 4."],steps:[`Powers of ${b} end in a cycle of length 4`,`${e} mod 4 = ${e%4}`,`Units digit = ${r}`]}}],
+ [()=>{const p=pick([2,3,5]),q=pick([7,11,13]),a=ri(2,3);let s=0;for(let i=0;i<=a;i++)s+=p**i;const t=s*(1+q);return{q:`Find the sum of all positive divisors of ${p**a*q}.`,ans:`${t}`,hints:[`Factor it: ${p}^${a} × ${q}.`,"σ is multiplicative: σ(mn) = σ(m)σ(n) when gcd = 1"],steps:[`σ(${p}^${a}) = ${s}`,`σ(${q}) = ${1+q}`,`${s} × ${1+q} = ${t}`]}},
+  ()=>{let b=ri(2,9);const m=pick([7,11,13]),n=ri(50,200);if(b%m===0)b++;const r=mp(b,n,m);return{q:`What is the remainder when ${b}^${n} is divided by ${m}?`,ans:`${r}`,hints:["Look for a repeating pattern in the remainders.",`Fermat: ${b}^${m-1} ≡ 1 (mod ${m})`],steps:[`${m} is prime, so powers repeat every ${m-1}`,`${n} mod ${m-1} = ${n%(m-1)}`,`Remainder = ${r}`]}}]],
+Probability:[
+ [()=>{const r=ri(2,9),b=ri(2,9),t=r+b;return{q:`A bag has ${r} red and ${b} blue marbles. One is drawn at random. What is P(red)?`,ans:fr(r,t),wrong:[fr(b,t),fr(r,b),fr(r+1,t+1)],hints:["Favorable outcomes over total outcomes.","P = favorable / total"],steps:[`Red = ${r}, total = ${t}`,`P = ${fr(r,t)}`]}},
+  ()=>{const s=ri(2,12),w=6-Math.abs(s-7);return{q:`Two fair dice are rolled. What is the probability the sum is ${s}?`,ans:fr(w,36),wrong:[fr(w,12),fr(1,s),fr(w+1,36)],hints:["List the pairs that make the sum.","There are 36 equally likely outcomes."],steps:[`${w} pair(s) give a sum of ${s}`,`P = ${w}/36 = ${fr(w,36)}`]}}],
+ [()=>{const r=ri(3,7),b=ri(2,6),n=r+b;return{q:`A bag has ${r} red and ${b} blue marbles. Two are drawn without replacement. What is P(both red)?`,ans:fr(r*(r-1),n*(n-1)),wrong:[fr(r*r,n*n),fr(r,n),fr(2*r,n*(n-1))],hints:["After the first draw, the bag changes.",`P = (${r}/${n}) × (? / ${n-1})`],steps:[`First red: ${r}/${n}`,`Second red: ${r-1}/${n-1}`,`P = ${fr(r*(r-1),n*(n-1))}`]}},
+  ()=>{const n=ri(4,6),k=ri(1,n-1);return{q:`A fair coin is flipped ${n} times. What is the probability of exactly ${k} heads?`,ans:fr(C(n,k),2**n),wrong:[fr(1,2**n),fr(k,n),fr(C(n,k),2**n-1)],hints:["Count the arrangements of heads, then divide by all outcomes.",`C(${n},${k}) ÷ 2^${n}`],steps:[`Ways to choose heads: C(${n},${k}) = ${C(n,k)}`,`Total outcomes: 2^${n} = ${2**n}`,`P = ${fr(C(n,k),2**n)}`]}}],
+ [()=>{const a=ri(4,7),g=ri(2,4),t=C(a+g,3),w=t-C(a,3);return{q:`A club has ${a} boys and ${g} girls. A committee of 3 is chosen at random. What is P(at least one girl)?`,ans:fr(w,t),wrong:[fr(C(a,3),t),fr(g,a+g),fr(w+1,t)],hints:["Use the complement: no girls at all.","P = 1 − C(boys,3) / C(total,3)"],steps:[`Total committees: C(${a+g},3) = ${t}`,`All-boy committees: C(${a},3) = ${C(a,3)}`,`P = 1 − ${fr(C(a,3),t)} = ${fr(w,t)}`]}},
+  ()=>{const n=ri(3,6);return{q:`${n} fair six-sided dice are rolled. What is the probability that their product is even?`,ans:fr(2**n-1,2**n),wrong:[fr(1,2**n),fr(1,2),fr(2**n-2,2**n)],hints:["When is a product odd?","P(even) = 1 − P(all odd)"],steps:[`P(one die odd) = 1/2`,`P(all ${n} odd) = 1/${2**n}`,`P(even) = ${fr(2**n-1,2**n)}`]}}]],
+"Combinatorics":[
+ [()=>{const n=ri(4,7);return{q:`In how many ways can ${n} different books be arranged on a shelf?`,ans:`${fact(n)}`,hints:["Choose the first book, then the second, and so on.","n! = n × (n − 1) × … × 1"],steps:[`${n}! = ${fact(n)}`]}}],
+ [()=>{const n=ri(6,12),k=ri(2,4);return{q:`In how many ways can a team of ${k} be chosen from ${n} students?`,ans:`${C(n,k)}`,hints:["Order does not matter.","C(n,k) = n! / (k!(n − k)!)"],steps:[`C(${n},${k}) = ${C(n,k)}`]}}],
+ [()=>{const w=pick(["BANANA","LETTER","COOKIE","SUCCESS","MATH","ALGEBRA"]),cnt={};for(const c of w)cnt[c]=(cnt[c]||0)+1;let a=fact(w.length);Object.values(cnt).forEach(v=>a/=fact(v));return{q:`How many distinct arrangements of the letters of ${w} are there?`,ans:`${a}`,hints:["Repeated letters make some arrangements identical.","n! divided by the factorial of each repeat count"],steps:[`${w.length}! = ${fact(w.length)}`,`Divide by ${Object.values(cnt).filter(v=>v>1).map(v=>v+"!").join(" × ")||"1"}`,`Answer: ${a}`]}}]],
+"Ratios & Percent":[
+ [()=>{const p=pick([10,20,25,40,50,75]),N=ri(2,12)*20;return{q:`What is ${p}% of ${N}?`,ans:`${p*N/100}`,hints:["Turn the percent into a fraction of 100.","p% of N = p × N / 100"],steps:[`${p} × ${N} / 100 = ${p*N/100}`]}}],
+ [()=>{const o=ri(2,10)*20,d=pick([10,20,25,40]),P=o*(100-d)/100;return{q:`After a ${d}% discount, a jacket costs $${P}. What was the original price in dollars?`,ans:`${o}`,hints:[`The sale price is ${100-d}% of the original.`,`Original = sale price ÷ ${(100-d)/100}`],steps:[`${P} ÷ ${(100-d)/100} = ${o}`]}}],
+ [()=>{const [x,y,t]=pick([[3,6,2],[4,12,3],[6,12,4],[10,15,6],[12,24,8],[20,30,12]]);return{q:`Alex can paint a fence in ${x} hours and Sam in ${y} hours. Working together, how many hours do they need?`,ans:`${t}`,hints:["Add their rates (jobs per hour).",`1/${x} + 1/${y} = 1/t`],steps:[`Combined rate = ${fr(x+y,x*y)} jobs per hour`,`t = ${x*y}/${x+y} = ${t}`]}}]],
+"Coordinate Geometry":[
+ [()=>{const [a,b,c]=pick(TRI),k=ri(1,3),x=ri(0,5),y=ri(0,5);return{q:`Find the distance between (${x}, ${y}) and (${x+a*k}, ${y+b*k}).`,ans:`${c*k}`,hints:["Build a right triangle from the horizontal and vertical gaps.","d = √((x₂ − x₁)² + (y₂ − y₁)²)"],steps:[`Gaps: ${a*k} and ${b*k}`,`d = √(${(a*k)**2} + ${(b*k)**2}) = ${c*k}`]}}],
+ [()=>{const m=ri(2,6),dx=ri(1,4),x=ri(0,5),y=ri(0,5);return{q:`What is the slope of the line through (${x}, ${y}) and (${x+dx}, ${y+m*dx})?`,ans:`${m}`,hints:["Slope is rise over run.","m = (y₂ − y₁) / (x₂ − x₁)"],steps:[`Rise = ${m*dx}, run = ${dx}`,`m = ${m}`]}}],
+ [()=>{const a=2*ri(2,8),h=ri(3,9),b=ri(1,9);return{q:`Find the area of the triangle with vertices (0, 0), (${a}, 0) and (${b}, ${h}).`,ans:`${a*h/2}`,hints:["One side lies on the x-axis — use it as the base.","Area = ½ × base × height"],steps:[`Base = ${a}, height = ${h}`,`Area = ½ × ${a} × ${h} = ${a*h/2}`]}}]],
+"Logic & Puzzles":[
+ [()=>{const a=ri(2,9),d=ri(2,7),t=[0,1,2,3].map(i=>a+i*d);return{q:`What comes next: ${t.join(", ")}, ?`,ans:`${a+4*d}`,hints:["Look at the gap between neighbours.",`Each term adds ${d}.`],steps:[`Common difference = ${d}`,`${t[3]} + ${d} = ${a+4*d}`]}}],
+ [()=>{const n=ri(6,15);return{q:`At a party, each of ${n} people shakes hands once with every other person. How many handshakes happen?`,ans:`${n*(n-1)/2}`,hints:[`Each person shakes ${n-1} hands — but watch for double counting.`,"n(n − 1) / 2"],steps:[`${n} × ${n-1} = ${n*(n-1)}`,`Each handshake is counted twice → ${n*(n-1)/2}`]}}],
+ [()=>{const [a,b]=pick([[3,4],[3,5],[4,5],[3,7],[4,6],[5,6]]),N=ri(60,200),l=a*b/gcd(a,b),r=Math.floor(N/a)+Math.floor(N/b)-Math.floor(N/l);return{q:`How many integers from 1 to ${N} are divisible by ${a} or ${b}?`,ans:`${r}`,hints:["Count multiples of each, then fix the overlap.","Inclusion–exclusion: |A| + |B| − |A∩B|"],steps:[`⌊${N}/${a}⌋ = ${Math.floor(N/a)}, ⌊${N}/${b}⌋ = ${Math.floor(N/b)}`,`Multiples of both (${l}): ${Math.floor(N/l)}`,`${Math.floor(N/a)} + ${Math.floor(N/b)} − ${Math.floor(N/l)} = ${r}`]}}]]
+};
+/* ============ HARDER BANKS: HARD[topic] = [Club generators, Olympiad generators] ============ */
+const Q=(q,ans,hints,steps,wrong)=>({q,ans:String(ans),hints,steps,wrong});
+const sg=n=>n<0?"−":"+";
+const HARD={
+Algebra:[[
+ ()=>{const r=ri(2,9),D=ri(1,5),P=r*(r+D),k=2*r+D;return Q(`The equation x² − kx + ${P} = 0 has two positive roots that differ by ${D}. Find k.`,k,[`Call the roots r and r + ${D}.`,`Product of roots = ${P}, sum of roots = k.`],[`r(r + ${D}) = ${P} gives r = ${r}`,`Roots: ${r} and ${r+D}`,`k = ${r} + ${r+D} = ${k}`])},
+ ()=>{const A=ri(1,5),c=ri(1,6);let a=A;const t=[A];for(let i=1;i<6;i++){a=2*a+c;t.push(a)}return Q(`A sequence has a₁ = ${A} and aₙ₊₁ = 2aₙ + ${c}. Find a₆.`,a,["Compute the terms one at a time.",`Or note aₙ₊₁ + ${c} = 2(aₙ + ${c}).`],[`Terms: ${t.join(", ")}`,`a₆ = ${a}`])},
+ ()=>{const B=ri(1,4),d=ri(2,5),x=B+d,A=d*d-B-d;return Q(`Solve √(x ${sg(A)} ${Math.abs(A)}) = x − ${B}. What is x?`,x,["Square both sides, then check every root in the original equation.",`Squaring gives (x − ${B})² = x ${sg(A)} ${Math.abs(A)}.`],[`x² − ${2*B+1}x + ${B*B-A} = 0`,`Roots: ${x} and ${B+1-d}`,`The root ${B+1-d} makes x − ${B} negative, so only x = ${x} works`])}
+],[
+ ()=>{const a=ri(1,20),b=ri(1,20),c=ri(1,20),v=64+3*(c-27)-3*(b-8)+(a-1);return Q(`P(x) is a monic cubic with P(1) = ${a}, P(2) = ${b} and P(3) = ${c}. Find P(4).`,v,["Look at Q(x) = P(x) − x³. What is its degree?","Q has degree ≤ 2, so Q(4) = 3Q(3) − 3Q(2) + Q(1)."],[`Q(1) = ${a-1}, Q(2) = ${b-8}, Q(3) = ${c-27}`,`Q(4) = 3(${c-27}) − 3(${b-8}) + ${a-1} = ${3*(c-27)-3*(b-8)+a-1}`,`P(4) = 64 + Q(4) = ${v}`])},
+ ()=>{const S=ri(2,7),T=ri(2,9),U=ri(1,8),p2=S*S-2*T,p3=S*p2-T*S+3*U,p4=S*p3-T*p2+U*S;return Q(`The roots of x³ − ${S}x² + ${T}x − ${U} = 0 are a, b, c. Find a⁴ + b⁴ + c⁴.`,p4,["Let pₖ = aᵏ + bᵏ + cᵏ and build up from p₁ using Newton’s identities.","p₂ = e₁p₁ − 2e₂, p₃ = e₁p₂ − e₂p₁ + 3e₃, p₄ = e₁p₃ − e₂p₂ + e₃p₁"],[`e₁ = ${S}, e₂ = ${T}, e₃ = ${U}`,`p₁ = ${S}, p₂ = ${p2}, p₃ = ${p3}`,`p₄ = ${S}·${p3} − ${T}·${p2} + ${U}·${S} = ${p4}`])},
+ ()=>{const n=pick([6,10,12,18,20,24,30]);let c=0;for(let x=n+1;x<=2*n;x++)if((n*x)%(x-n)===0)c++;return Q(`How many ordered pairs (x, y) of positive integers satisfy 1/x + 1/y = 1/${n}?`,c,["Clear denominators and try to factor.",`(x − ${n})(y − ${n}) = ${n}²`],[`Rewrite as (x − ${n})(y − ${n}) = ${n*n}`,`Count positive divisors of ${n}² (the negative case gives no positive x, y)`,`Answer: ${c}`])},
+ ()=>{const N=pick([105,144,180,240,360,420,504,720]);let c=0;for(let y=1;y<=N;y++){const x=Math.round(Math.sqrt(y*y+N));if(x*x===y*y+N)c++}return Q(`How many ordered pairs of positive integers (x, y) satisfy x² − y² = ${N}?`,c,["Factor the left side.","(x − y)(x + y) = N, and both factors must have the same parity."],[`(x − y)(x + y) = ${N}`,"List factor pairs d·e with d < e and d, e of the same parity",`Count = ${c}`])}
+]],
+Geometry:[[
+ ()=>{const [a,b,c]=pick(TRI),k=ri(1,3),r=(a+b-c)*k/2;return Q(`A right triangle has legs ${a*k} and ${b*k}. What is the radius of its inscribed circle?`,r,["Area can be written two ways: ½·legs and r·(semi-perimeter).","For a right triangle, r = (a + b − c) / 2."],[`Hypotenuse = ${c*k}`,`r = (${a*k} + ${b*k} − ${c*k}) / 2 = ${r}`])},
+ ()=>{const [a,b]=pick([[6,3],[12,6],[20,5],[30,6],[12,4],[15,10],[30,20],[24,8],[21,28]]);return Q(`A square is inscribed in a right triangle with legs ${a} and ${b}, with one corner of the square at the right angle. What is the side of the square?`,a*b/(a+b),["Use similar triangles: the small triangle above the square is similar to the whole one.","Side s satisfies s/a + s/b = 1."],[`s/${a} + s/${b} = 1`,`s = ${a}·${b} / (${a} + ${b}) = ${a*b/(a+b)}`])},
+ ()=>{const n=pick([5,7,11,13]);return Q(`A regular ${n}-gon has all its diagonals drawn, and no three diagonals meet at one interior point. How many interior intersection points are there?`,C(n,4),["Each intersection point comes from two crossing diagonals.","Four vertices determine exactly one pair of crossing diagonals."],[`Choose any 4 vertices: C(${n},4) ways`,`Each gives one crossing: ${C(n,4)}`])},
+ ()=>{const [a,b,c,A]=pick(HER),k=ri(1,3),s2=(a+b+c)*k/2;return Q(`A triangle has sides ${a*k}, ${b*k}, ${c*k}. What is its area?`,A*k*k,["Heron’s formula, or drop an altitude to the longest side.","Area = √(s(s−a)(s−b)(s−c))"],[`s = ${s2}`,`Area = √(${s2}·${s2-a*k}·${s2-b*k}·${s2-c*k}) = ${A*k*k}`])}
+],[
+ ()=>{const [a,b,c]=pick([[13,14,15],[5,5,6],[10,13,13],[5,12,13],[8,15,17],[7,24,25]]),P=a+b+c,K16=P*(P-2*a)*(P-2*b)*(P-2*c),abc=a*b*c,num=abc*abc*P-K16*abc,den=K16*P,g=gcd(num,den),m=num/g,n=den/g;return Q(`Triangle ABC has sides ${a}, ${b} and ${c}. Let O be its circumcenter and I its incenter. If OI² = m/n in lowest terms, find m + n.`,m+n,["Use R = abc/(4K) and r = K/s, where K is the area.","Euler’s formula: OI² = R(R − 2r)."],[`K = √(${K16})/4 (from Heron’s formula)`,`OI² = R² − 2Rr = ${m}/${n}`,`m + n = ${m+n}`])},
+ ()=>{let a,b,c,d,A2;do{a=ri(5,15);b=ri(1,12);c=ri(1,12);d=ri(5,15);A2=Math.abs(a*d-b*c)}while(A2<12);const B=gcd(a,b)+gcd(c,d)+gcd(Math.abs(a-c),Math.abs(b-d)),I=(A2-B+2)/2;return Q(`How many lattice points lie strictly inside the triangle with vertices (0, 0), (${a}, ${b}) and (${c}, ${d})?`,I,["Compute the area with the cross product, then count boundary points.","Pick’s theorem: A = I + B/2 − 1."],[`2·Area = |${a}·${d} − ${b}·${c}| = ${A2}`,`Boundary points B = gcd sums = ${B}`,`I = (${A2} − ${B} + 2)/2 = ${I}`])}
+]],
+"Number Theory":[[
+ ()=>{const n=ri(100,900);let z=0;for(let q=5;q<=n;q*=5)z+=Math.floor(n/q);return Q(`How many trailing zeros does ${n}! have?`,z,["Each trailing zero needs a factor 10 = 2 × 5.","Count factors of 5: ⌊n/5⌋ + ⌊n/25⌋ + ⌊n/125⌋ + …"],[`There are plenty of 2s, so count the 5s`,`Total = ${z}`])},
+ ()=>{const b=pick([3,7,9,11,13]),e=ri(30,200),r=mp(b,e,100);return Q(`What is the remainder when ${b}^${e} is divided by 100?`,r,[`Find the cycle of ${b}ⁿ mod 100, or split into mod 4 and mod 25.`,"Euler: the powers repeat with period dividing φ(100) = 40."],[`Reduce the exponent using the cycle length`,`${b}^${e} ≡ ${r} (mod 100)`])},
+ ()=>{const ms=pick([[3,5,7],[4,5,7],[5,7,9],[3,4,5],[5,7,8]]),M=ms[0]*ms[1]*ms[2],n0=ri(1,M-1);return Q(`Find the smallest positive integer n with n ≡ ${n0%ms[0]} (mod ${ms[0]}), n ≡ ${n0%ms[1]} (mod ${ms[1]}) and n ≡ ${n0%ms[2]} (mod ${ms[2]}).`,n0,["List numbers satisfying the largest modulus first, then test the others.","The moduli are pairwise coprime, so the solution is unique mod "+M+"."],[`Combine the congruences (Chinese Remainder Theorem)`,`The unique solution below ${M} is ${n0}`])},
+ ()=>{const m=pick([12,15,18,20,24,30]),N=ri(60,200);let c=0;for(let k=1;k<=N;k++)if(gcd(k,m)===1)c++;return Q(`How many integers from 1 to ${N} are coprime to ${m}?`,c,[`Which primes divide ${m}?`,"Use inclusion–exclusion on multiples of those primes."],[`Remove multiples of each prime factor of ${m}, add back overlaps`,`Count = ${c}`])}
+],[
+ ()=>{const n=ri(20,80);let f=1;for(let i=2;i<=n+1;i++)f=f*i%97;const r=(f+96)%97;return Q(`Find the remainder when 1·1! + 2·2! + 3·3! + … + ${n}·${n}! is divided by 97.`,r,["Rewrite k·k! as a difference of two factorials.","k·k! = (k + 1)! − k!, so the sum telescopes."],[`The sum equals ${n+1}! − 1`,`${n+1}! mod 97 = ${f}`,`Remainder = ${r}`])},
+ ()=>{const a=ri(1,3),b=ri(1,3),c=ri(1,3),N=2**a*3**b*5**c;return Q(`How many ordered pairs (x, y) of positive integers satisfy lcm(x, y) = ${N}?`,(2*a+1)*(2*b+1)*(2*c+1),["Handle each prime separately.","For a prime with exponent e in N, count exponent pairs (i, j) with max(i, j) = e."],[`${N} = 2^${a} · 3^${b} · 5^${c}`,`For exponent e there are 2e + 1 pairs`,`${2*a+1} × ${2*b+1} × ${2*c+1} = ${(2*a+1)*(2*b+1)*(2*c+1)}`])},
+ ()=>{const e=ri(100,999),r=(mp(3,e,1001)+mp(5,e,1001))%1001;return Q(`Find the remainder when 3^${e} + 5^${e} is divided by 1001.`,r,["Factor 1001 into primes and work modulo each prime.","1001 = 7 · 11 · 13. Use Fermat’s little theorem for each, then combine."],[`1001 = 7 · 11 · 13`,`Reduce each power modulo 7, 11 and 13`,`Combine with CRT: remainder = ${r}`])}
+]],
+Probability:[[
+ ()=>{const s=ri(6,15);let c=0;for(let a=1;a<=6;a++)for(let b=1;b<=6;b++)for(let d=1;d<=6;d++)if(a+b+d===s)c++;return Q(`Three fair dice are rolled. What is the probability that the sum is ${s}?`,fr(c,216),[`Count the ordered triples that add to ${s}.`,"There are 6³ = 216 equally likely outcomes."],[`Ordered triples with sum ${s}: ${c}`,`P = ${c}/216 = ${fr(c,216)}`],[fr(c+1,216),fr(c,108),fr(c-1,216)])},
+ ()=>{const r=ri(2,5),b=ri(2,5),g=ri(2,5),n=r+b+g,w=r*b*g;return Q(`A bag has ${r} red, ${b} blue and ${g} green marbles. Three are drawn at random without replacement. What is the probability that all three colours appear?`,fr(w,C(n,3)),["Count the ways to pick one marble of each colour.","P = (ways with one of each) / C(total, 3)"],[`Favourable: ${r}·${b}·${g} = ${w}`,`Total: C(${n},3) = ${C(n,3)}`,`P = ${fr(w,C(n,3))}`],[fr(w,C(n,3)*2),fr(3*w,C(n,3)),fr(w,n*n*n)])},
+ ()=>{const n=ri(5,8),k=ri(2,n-2);let c=0;for(let j=k;j<=n;j++)c+=C(n,j);return Q(`A fair coin is flipped ${n} times. What is the probability of at least ${k} heads?`,fr(c,2**n),["It may be easier to count the complement.","P(at least k) = 1 − P(at most k − 1)"],[`Outcomes with ≥ ${k} heads: ${c}`,`P = ${c}/${2**n} = ${fr(c,2**n)}`],[fr(c+1,2**n),fr(c,2**n-1),fr(2**n-c,2**n)])}
+],[
+ ()=>{const N=ri(5,8),i=ri(2,N-2),ans=fr(2**N-2**(N-i),2**N-1);return Q(`A gambler starts with $${i}. Each round he wins $1 with probability 2/3 and loses $1 with probability 1/3. He stops at $0 or $${N}. What is the probability he reaches $${N}?`,ans,["Let Pₖ be the success probability from $k and write a recurrence.","Pₖ = (2/3)Pₖ₊₁ + (1/3)Pₖ₋₁ with P₀ = 0, Pₙ = 1. Ratio r = q/p = 1/2."],[`Solving: Pₖ = (1 − r^k)/(1 − r^${N}) with r = 1/2`,`P${i} = (2^${N} − 2^${N-i}) / (2^${N} − 1) = ${ans}`])},
+ ()=>{const n=ri(5,8),D=[1,0];for(let i=2;i<=n;i++)D[i]=(i-1)*(D[i-1]+D[i-2]);return Q(`${n} letters are placed randomly into ${n} addressed envelopes, one per envelope. What is the probability that no letter is in its correct envelope?`,fr(D[n],fact(n)),["Count the arrangements with no fixed point (derangements).","Dₙ = (n − 1)(Dₙ₋₁ + Dₙ₋₂), D₁ = 0, D₂ = 1"],[`D${n} = ${D[n]}`,`P = ${D[n]}/${n}! = ${fr(D[n],fact(n))}`])},
+ ()=>{const n=ri(3,7);return Q(`A frog starts at 0 on a number line. Each second it jumps 1 left or 1 right with equal probability. What is the probability it is back at 0 after ${2*n} seconds?`,fr(C(2*n,n),4**n),["It needs equal numbers of left and right jumps.","Choose which jumps go right: C(2n, n) out of 2^(2n)."],[`Need ${n} left and ${n} right jumps`,`P = C(${2*n},${n}) / 2^${2*n} = ${fr(C(2*n,n),4**n)}`])}
+]],
+Combinatorics:[[
+ ()=>{const k=ri(3,5),n=ri(6,12);return Q(`How many non-negative integer solutions does x₁ + x₂ + … + x${k} = ${n} have?`,C(n+k-1,k-1),[`Think of ${n} identical stars separated by bars.`,"Stars and bars: C(n + k − 1, k − 1)"],[`${n} stars and ${k-1} bars`,`C(${n+k-1},${k-1}) = ${C(n+k-1,k-1)}`])},
+ ()=>{const n=ri(5,8);return Q(`${n} people line up in a row. Ann and Ben insist on standing next to each other. In how many ways can they line up?`,2*fact(n-1),["Glue Ann and Ben together as one block.","Arrange the block with the others, then order the pair inside."],[`Block + ${n-2} others = ${n-1} items: ${n-1}! ways`,`Ann/Ben order inside: 2`,`Total = 2 × ${fact(n-1)} = ${2*fact(n-1)}`])},
+ ()=>{const a=ri(4,6),b=ri(4,6),c=ri(1,a-1),d=ri(1,b-1),t=C(a+b,a),bad=C(c+d,c)*C(a+b-c-d,a-c);return Q(`A walker goes from (0, 0) to (${a}, ${b}) taking only steps right or up. How many paths avoid the point (${c}, ${d})?`,t-bad,["Count all paths, then subtract the ones through the forbidden point.","Paths through (c, d) = paths to (c, d) × paths from (c, d) to the end."],[`All paths: C(${a+b},${a}) = ${t}`,`Through (${c}, ${d}): ${C(c+d,c)} × ${C(a+b-c-d,a-c)} = ${bad}`,`Answer = ${t-bad}`])}
+],[
+ ()=>{const n=ri(6,8),k=ri(3,4);let v=0;for(let j=0;j<=k;j++)v+=(j%2?-1:1)*C(k,j)*(k-j)**n;return Q(`How many functions from a ${n}-element set onto a ${k}-element set are there? (Every element of the target must be used.)`,v,["Count all functions, then subtract those that miss some target element.","Inclusion–exclusion: Σ (−1)^j C(k, j)(k − j)^n"],[`Σ (−1)^j C(${k},j)(${k}−j)^${n}`,`= ${v}`])},
+ ()=>{const m=ri(4,7),N=ri(m+3,3*m);let c=0;for(let a=0;a<=m;a++)for(let b=0;b<=m;b++)for(let d=0;d<=m;d++){const e=N-a-b-d;if(e>=0&&e<=m)c++}return Q(`How many ordered quadruples of integers (a, b, c, d) with 0 ≤ each ≤ ${m} satisfy a + b + c + d = ${N}?`,c,["Start with stars and bars, ignoring the upper limit.","Subtract the cases where a variable exceeds the limit (inclusion–exclusion)."],[`Unrestricted: C(${N+3},3) = ${C(N+3,3)}`,`Subtract cases where some variable ≥ ${m+1}, add back overlaps`,`Answer = ${c}`])},
+ ()=>{const n=ri(9,14),f=[1,2,4,7];for(let i=4;i<=n;i++)f[i]=f[i-1]+f[i-2]+f[i-3];return Q(`How many binary strings of length ${n} contain no three consecutive 0s?`,f[n],["Build a recurrence by looking at how the string ends.","fₙ = fₙ₋₁ + fₙ₋₂ + fₙ₋₃ (ends in 1, 10, or 100)"],[`f₁ = 2, f₂ = 4, f₃ = 7`,`Each term is the sum of the previous three`,`f${n} = ${f[n]}`])}
+]],
+"Ratios & Percent":[[
+ ()=>{const [a,b]=pick([[20,25],[50,40],[25,20],[10,20],[40,25]]),v=(100+a)*(100-b)/100;return Q(`A price rises by ${a}% and then falls by ${b}%. The final price is what percent of the original?`,v,["Use multipliers, not simple addition of percents.",`Multiply by ${(100+a)/100} then by ${(100-b)/100}.`],[`${(100+a)/100} × ${(100-b)/100} = ${v/100}`,`Final price = ${v}% of the original`])},
+ ()=>{const p=ri(1,4),q=ri(1,4),t=p+q,L=ri(1,3),a=ri(10,30),b=a+t*ri(1,4),m=(p*a+q*b)/t;return Q(`${p*L} litres of ${a}% acid are mixed with ${q*L} litres of ${b}% acid. What percent acid is the mixture?`,m,["Compare the total acid to the total volume.","Percent = (acid₁ + acid₂) / (volume₁ + volume₂)"],[`Acid: ${p*L}·${a}% + ${q*L}·${b}% = ${(p*L*a+q*L*b)/100} L`,`Volume: ${t*L} L`,`Percent = ${m}%`])},
+ ()=>{const [x,y]=pick([[30,60],[40,60],[20,30],[60,90],[30,45],[50,75]]);return Q(`A car drives to a town at ${x} mph and returns along the same road at ${y} mph. What is its average speed for the round trip, in mph?`,2*x*y/(x+y),["Average speed = total distance ÷ total time, not the mean of the speeds.","Take the one-way distance to be d and add the two times."],[`Time = d/${x} + d/${y}`,`Average = 2·${x}·${y} / (${x} + ${y}) = ${2*x*y/(x+y)} mph`])}
+],[
+ ()=>{let a,b,c,t=0,g=0;do{a=ri(3,24);b=ri(3,24);c=ri(3,24);const den=b*c+a*c-a*b;t=den>0&&(a*b*c)%den===0?a*b*c/den:0;g++}while(!t&&g<800);if(!t){a=6;b=12;c=12;t=6}return Q(`Pipe A fills an empty tank in ${a} hours and pipe B in ${b} hours. A drain empties a full tank in ${c} hours. With all three open, how many hours to fill the empty tank?`,t,["Think in tank-fractions per hour.","Net rate = 1/A + 1/B − 1/C"],[`Net rate = 1/${a} + 1/${b} − 1/${c} = 1/${t}`,`Time = ${t} hours`])},
+ ()=>{const d=ri(3,5),n=ri(2,3),k=ri(1,3),V=k*d**n,x=V/d;return Q(`A vessel holds ${V} litres of pure milk. ${x} litres are removed and replaced by water. This is repeated ${n} times in total. How many litres of milk remain?`,k*(d-1)**n,["After each step, a fixed fraction of the milk remains.",`Each step keeps ${d-1}/${d} of the milk.`],[`Each step multiplies the milk by ${d-1}/${d}`,`${V} × (${d-1}/${d})^${n} = ${k*(d-1)**n} litres`])},
+ ()=>{const L=400,u=ri(3,7),v=ri(4,9),T=ri(600,1500);return Q(`Two runners start together and run in opposite directions around a ${L} m circular track at ${u} m/s and ${v} m/s. How many times do they meet in the first ${T} seconds? (Do not count the start; count a meeting at exactly ${T} s.)`,Math.floor(T*(u+v)/L),["Use their combined speed to find the time between meetings.",`They meet every ${L}/(${u}+${v}) seconds.`],[`Combined distance in ${T} s = ${T*(u+v)} m`,`Meetings = ⌊${T*(u+v)}/${L}⌋ = ${Math.floor(T*(u+v)/L)}`])}
+]],
+"Coordinate Geometry":[[
+ ()=>{const x0=ri(-6,6),y0=ri(-6,6),m=ri(2,9),c=5*m-3*x0-4*y0;return Q(`Find the distance from the point (${x0}, ${y0}) to the line 3x + 4y ${sg(c)} ${Math.abs(c)} = 0.`,m,["Use the point-to-line distance formula.","d = |ax₀ + by₀ + c| / √(a² + b²)"],[`3(${x0}) + 4(${y0}) ${sg(c)} ${Math.abs(c)} = ${5*m}`,`d = ${5*m} / 5 = ${m}`])},
+ ()=>{const p=ri(6,14),t=ri(2,p-2),h=2*ri(2,5),x1=ri(0,4);return Q(`A quadrilateral has vertices (0, 0), (${p}, 0), (${x1+t}, ${h}) and (${x1}, ${h}). What is its area?`,(p+t)*h/2,["Two sides are horizontal. What shape is this?","Trapezoid area = ½(sum of parallel sides) × height"],[`Parallel sides: ${p} and ${t}`,`Area = ½(${p} + ${t})(${h}) = ${(p+t)*h/2}`])},
+ ()=>{const m=pick([2,3,4,5]),y1=m*ri(1,5),x1=ri(6,12);return Q(`A line through (${x1}, ${y1}) has slope ${m}. At what x-value does it cross the x-axis?`,x1-y1/m,["At the x-axis, y = 0.","Use y − y₁ = m(x − x₁)."],[`0 − ${y1} = ${m}(x − ${x1})`,`x = ${x1} − ${y1/m} = ${x1-y1/m}`])}
+],[
+ ()=>{const N=pick([65,85,125,145,185,205,221,325,425,485,625,1105]);let c=0;for(let x=-40;x<=40;x++){const y2=N-x*x;if(y2>=0){const y=Math.round(Math.sqrt(y2));if(y*y===y2)c+=y?2:1}}return Q(`How many points (x, y) with integer coordinates lie on the circle x² + y² = ${N}?`,c,[`Find all ways to write ${N} as a sum of two squares.`,"Count signs and order: each solution (a, b) with a, b > 0, a ≠ b gives 8 points."],[`Find the representations of ${N} as a² + b²`,`Count all sign and order choices`,`Total = ${c}`])},
+ ()=>{const [u,v,w]=pick(TRI),k=ri(1,3),d=u*k,S=v*k,a=ri(1,S-1),b=S-a;return Q(`Points A = (0, ${a}) and B = (${d}, ${b}) lie above the x-axis. Point P lies on the x-axis. What is the minimum possible value of AP + PB?`,w*k,["Reflect one point across the x-axis.","The shortest path becomes a straight line to the reflected point."],[`Reflect B to (${d}, −${b})`,`Distance = √(${d}² + (${a} + ${b})²) = √(${d*d} + ${S*S})`,`Minimum = ${w*k}`])}
+]],
+"Logic & Puzzles":[[
+ ()=>{const [a,b]=pick([[3,4],[3,5],[4,5],[3,7],[4,6],[5,6]]),N=ri(60,200),l=a*b/gcd(a,b),r=Math.floor(N/a)+Math.floor(N/b)-Math.floor(N/l);return Q(`How many integers from 1 to ${N} are divisible by ${a} or ${b}?`,r,["Count multiples of each, then fix the overlap.","Inclusion–exclusion: |A| + |B| − |A∩B|"],[`⌊${N}/${a}⌋ = ${Math.floor(N/a)}, ⌊${N}/${b}⌋ = ${Math.floor(N/b)}`,`Both (multiples of ${l}): ${Math.floor(N/l)}`,`Total = ${r}`])},
+ ()=>{const c=ri(3,6),k=ri(2,4);return Q(`A bag holds many balls in ${c} colours. You draw without looking. What is the minimum number of balls you must draw to guarantee ${k} of the same colour?`,c*(k-1)+1,["Imagine the worst case.","Pigeonhole: the worst case is k − 1 of every colour."],[`Worst case: ${k-1} of each of ${c} colours = ${c*(k-1)}`,`One more guarantees ${k} of a colour: ${c*(k-1)+1}`])},
+ ()=>{const h=ri(1,11),m=2*ri(0,29);let ang=Math.abs(30*h-11*(m/2));if(ang>180)ang=360-ang;return Q(`What is the smaller angle, in degrees, between the clock hands at ${h}:${String(m).padStart(2,"0")}?`,ang,["The hour hand moves 30° per hour and 0.5° per minute.","The minute hand moves 6° per minute. Angle = |30h − 5.5m|."],[`Hour hand: ${30*h+m/2}°`,`Minute hand: ${6*m}°`,`Smaller angle = ${ang}°`])}
+],[
+ ()=>{const n=ri(40,200);let pw=1;while(pw*2<=n)pw*=2;return Q(`${n} people stand in a circle, numbered 1 to ${n}. Starting with person 1 (who is skipped), every second person is eliminated: 2, 4, 6, … continuing around the circle until one remains. Who is the survivor?`,2*(n-pw)+1,["Try small cases and look at the winners when n is a power of 2.","If n = 2^m + L, the survivor is 2L + 1."],[`${n} = ${pw} + ${n-pw}`,`Survivor = 2(${n-pw}) + 1 = ${2*(n-pw)+1}`])},
+ ()=>{const N=ri(500,3000);let c=0;for(let k=1;k<=N;k++){const s=Math.round(Math.sqrt(k)),cu=Math.round(Math.cbrt(k)),f=Math.round(Math.pow(k,0.2));if(!(s*s===k||cu**3===k||f**5===k))c++}return Q(`How many integers from 1 to ${N} are neither perfect squares, perfect cubes, nor perfect fifth powers?`,c,["Count the integers that ARE one of these, using inclusion–exclusion.","Overlaps: squares ∩ cubes = sixth powers, squares ∩ fifth = tenth powers, etc."],[`Subtract squares, cubes, fifth powers`,`Add back sixth, tenth, fifteenth powers; subtract thirtieth powers`,`Answer = ${c}`])},
+ ()=>{const cs=pick([[5,7],[7,11],[9,13],[6,10,15],[4,9],[8,11],[7,9]]);const ok=Array(701).fill(false);ok[0]=true;for(let i=1;i<=700;i++)ok[i]=cs.some(c=>i>=c&&ok[i-c]);let big=0;for(let i=0;i<=700;i++)if(!ok[i])big=i;return Q(`Coins come in values ${cs.join(", ")} cents. What is the largest amount, in cents, that cannot be made exactly?`,big,cs.length===2?["Try small amounts and look for the point after which everything works.","For two coprime coins a and b the answer is ab − a − b."]:["Build up which amounts are reachable, one at a time.","Once you have a run of consecutive reachable amounts as long as the smallest coin, everything beyond works."],[`Mark reachable amounts: add any coin to a reachable amount`,`The last unreachable amount is ${big}`])}
+]]
+};
+Object.keys(HARD).forEach(t=>{GEN[t][1]=HARD[t][0];GEN[t][2]=HARD[t][1]});
+
+const OPTS=["A","B","C","D"];
+function buildProblem(topic,level,seed){
+  setSeed(seed);
+  const p=pick(GEN[topic][level])();
+  p.type=level===2?"num":"mc";p.topic=topic;p.level=level;
+  let w=[...(p.wrong||[])];
+  if(!p.wrong&&!isNaN(+p.ans)){const a=+p.ans;w=[a+1,a-1,a+ri(2,5),a-ri(2,6),a*2,a+10].map(String)}
+  const numAns=!isNaN(+p.ans),pos=numAns&&+p.ans>=0;
+  w=[...new Set(w)].filter(x=>x!==p.ans&&!(pos&&+x<0));
+  for(let g=0;w.length<3&&g<60;g++){const x=numAns?String(+p.ans+ri(1,15)*(ri(0,1)?1:-1)):fr(ri(1,9),ri(10,20));if(x!==p.ans&&!w.includes(x)&&!(pos&&+x<0))w.push(x)}
+  p.choices=shuffle([p.ans,...w.slice(0,3)]);
+  return p;
+}
+const val=s=>{s=String(s).trim().replace(/\s/g,"");if(s.includes("/")){const[a,b]=s.split("/");return +a/+b}return Number(s)};
+const isRight=(inp,ans)=>{const a=val(inp),b=val(ans);return inp.trim()===ans||(!isNaN(a)&&isFinite(a)&&Math.abs(a-b)<1e-9)};
+
+/* ============ STORAGE ============ */
+const KEY="mathsprint:v1";
+const blank=()=>({topics:Object.fromEntries(TOPICS.map(t=>[t,{att:0,cor:0,time:0}])),streak:0,best:0,sessions:0});
+const load=()=>{try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.topics)return{...blank(),...d,topics:{...blank().topics,...d.topics}}}catch(e){}return blank()};
+const save=d=>{try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}};
+const acc=t=>t.att?Math.round(100*t.cor/t.att):0;
+const avgT=t=>t.att?t.time/t.att:0;
+const fmt=s=>`${Math.floor(s/60)}:${String(Math.round(s%60)).padStart(2,"0")}`;
+function weakest(st){
+  const seen=TOPICS.filter(t=>st.topics[t].att>=3);
+  if(!seen.length)return null;
+  return seen.sort((a,b)=>acc(st.topics[a])-acc(st.topics[b])||avgT(st.topics[b])-avgT(st.topics[a]))[0];
+}
+const copyText=async t=>{try{await navigator.clipboard.writeText(t);return true}catch(e){try{const a=document.createElement("textarea");a.value=t;document.body.appendChild(a);a.select();const ok=document.execCommand("copy");a.remove();return ok}catch(e2){return false}}};
+
+const TCOL={Algebra:["from-indigo-500 to-violet-500","x²"],Geometry:["from-emerald-500 to-teal-500","△"],"Number Theory":["from-amber-500 to-orange-500","≡"],Probability:["from-rose-500 to-pink-500","⚁"],Combinatorics:["from-sky-500 to-blue-600","C"],"Ratios & Percent":["from-lime-500 to-green-600","%"],"Coordinate Geometry":["from-fuchsia-500 to-purple-600","⊕"],"Logic & Puzzles":["from-slate-500 to-slate-700","?"]};
+
+/* ============ UI PIECES ============ */
+const Btn=({children,onClick,cls="",disabled})=><button disabled={disabled} onClick={onClick} className={`rounded-2xl font-semibold px-4 py-3 disabled:opacity-40 ${cls}`}>{children}</button>;
+const Primary="bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-600/30";
+
+function Home({cfg,setCfg,start,join,st,goLive}){
+  const [code,setCode]=useState(""),[more,setMore]=useState(false);
+  const weak=weakest(st);
+  const Seg=({items,val,on})=><div className="card p-1 grid gap-1" style={{gridTemplateColumns:`repeat(${items.length},1fr)`}}>{items.map(([k,l,d])=><button key={k} onClick={()=>on(k)} className={`py-2 px-1 rounded-2xl text-center ${val===k?"bg-indigo-600 text-white shadow":"mut"}`}><div className="text-sm font-bold">{l}</div>{d&&<div className="text-[11px] opacity-80">{d}</div>}</button>)}</div>;
+  return <div className="space-y-5 pop">
+    <div className="flex items-center gap-3"><Logo s={44}/>
+      <div><h1 className="text-2xl font-extrabold leading-none tracking-tight">Math<span className="grad">Sprint</span></h1><p className="mut text-sm">Train like a competitor</p></div>
+      <div className="ml-auto flex items-center gap-1 text-orange-500 font-bold"><Icon n="flame" s={18}/>{st.streak}</div></div>
+    <button onClick={goLive} className="w-full rounded-3xl p-4 text-left text-white bg-gradient-to-br from-fuchsia-500 to-indigo-600 shadow-lg flex items-center gap-3"><Icon n="users" s={26}/><div><div className="font-extrabold">Live quiz</div><div className="text-xs opacity-90">Host a game or join with a code</div></div><Icon n="arrow" c="ml-auto"/></button>
+    <section className="space-y-2"><h2 className="text-xs font-bold mut uppercase tracking-wide">Mode</h2>
+      <Seg val={cfg.mode} on={m=>setCfg({...cfg,mode:m})} items={[["practice","Practice","No timer"],["sprint","Sprint","5 Qs · timed"]]}/></section>
+    <section className="space-y-2"><div className="flex items-center justify-between"><h2 className="text-xs font-bold mut uppercase tracking-wide">Topic</h2>
+      {weak&&<button onClick={()=>setCfg({...cfg,topic:weak})} className="text-xs text-rose-500 font-semibold flex items-center gap-1"><Icon n="target" s={14}/>Weakest: {weak}</button>}</div>
+      <div className="grid grid-cols-2 gap-2">{TOPICS.map(t=>{const[g,sym]=TCOL[t],on=cfg.topic===t;return(
+        <button key={t} onClick={()=>setCfg({...cfg,topic:t})} className={`card p-2.5 flex items-center gap-2 text-left ${on?"ring-2 ring-indigo-500":""}`}>
+          <div className={`w-8 h-8 shrink-0 rounded-lg bg-gradient-to-br ${g} text-white grid place-items-center font-bold`}>{sym}</div>
+          <div className="min-w-0"><div className="font-bold text-[13px] leading-tight truncate">{t}</div><div className="mut text-[11px]">{st.topics[t].att?`${acc(st.topics[t])}%`:"New"}</div></div></button>)})}</div></section>
+    <section className="space-y-2"><h2 className="text-xs font-bold mut uppercase tracking-wide">Difficulty</h2>
+      <Seg val={cfg.level} on={l=>setCfg({...cfg,level:l})} items={LEVELS.map((l,i)=>[i,l])}/>
+      {cfg.level===2&&<p className="mut text-xs">Olympiad is very hard and uses typed answers. Fractions like 3/7 are accepted.</p>}</section>
+    <Btn onClick={()=>start()} cls={`w-full text-lg ${Primary}`}>Start {cfg.mode==="sprint"?"Sprint":"Practice"}</Btn>
+    <div className="text-center"><button onClick={()=>setMore(!more)} className="mut text-sm font-semibold">Have a challenge code?</button></div>
+    {more&&<div className="flex gap-2 pop"><input value={code} onChange={e=>setCode(e.target.value)} placeholder="e.g. 11-482913" className="flex-1 min-w-0 rounded-xl px-3 py-2 bg-transparent border bd outline-none"/>
+      <Btn onClick={()=>join(code)} cls="bg-slate-800 text-white !py-2">Join</Btn></div>}
+  </div>;
+}
+
+function Arena({cfg,onFinish,onRecord,streak}){
+  const sprint=cfg.mode!=="practice",N=cfg.n||5,LIM=cfg.limit||[300,420,600][cfg.level],comp=cfg.comp;
+  const [i,setI]=useState(0),[sel,setSel]=useState(null),[txt,setTxt]=useState(""),[hints,setHints]=useState(0),[res,setRes]=useState(null),[left,setLeft]=useState(LIM);
+  const results=useRef([]),t0=useRef(Date.now()),t00=useRef(Date.now());
+  const p=useMemo(()=>comp?buildProblem(...compQ(comp,i)):buildProblem(cfg.topic,cfg.level,cfg.seed+i*7919),[i]);
+  const finish=()=>onFinish(results.current,(Date.now()-t00.current)/1000);
+  useEffect(()=>{if(!sprint)return;const id=setInterval(()=>setLeft(l=>l-1),1000);return()=>clearInterval(id)},[]);
+  useEffect(()=>{if(sprint&&left<=0)finish()},[left]);
+  const submit=a=>{
+    if(res)return;
+    const ok=isRight(a,p.ans),secs=(Date.now()-t0.current)/1000;
+    const base=[10,20,30][p.level],pts=ok?base+Math.max(0,Math.round(base*(1-secs/120)/2)):0;results.current.push({ok,secs,hints,pts});onRecord(ok,secs,p.topic);setRes({ok});
+  };
+  const next=()=>{
+    if(sprint&&i+1>=N)return finish();
+    setI(i+1);setSel(null);setTxt("");setHints(0);setRes(null);t0.current=Date.now();
+  };
+  const done=results.current.filter(r=>r.ok).length;
+  return <div className="space-y-4 pop">
+    <div className="flex items-center gap-3">
+      <button onClick={finish} className="mut p-1" aria-label="End session"><Icon n="x"/></button>
+      <div className="flex-1 h-2.5 rounded-full bg-slate-300/40 overflow-hidden"><div className="h-full bg-gradient-to-r from-indigo-500 to-violet-500 transition-all" style={{width:`${sprint?(i+(res?1:0))/N*100:Math.min(100,(i+(res?1:0))*10)}%`}}/></div>
+      <div className="flex items-center gap-1 text-orange-500 font-bold text-sm"><Icon n="flame" s={16}/>{streak}</div>
+      {sprint&&<div className={`flex items-center gap-1 font-mono font-bold text-sm ${left<60?"text-rose-500":""}`}><Icon n="timer" s={16}/>{fmt(Math.max(0,left))}</div>}</div>
+    <div className="flex justify-between text-xs mut font-semibold"><span>{comp?comp.title:`${cfg.topic} · ${LEVELS[cfg.level]}`}</span><span>{sprint?`Question ${i+1} of ${N}`:`Solved ${done}`}</span></div>
+    <div className="card p-5"><p className="text-lg font-semibold leading-relaxed">{p.q}</p></div>
+    {p.type==="mc"?<div className="space-y-2">{p.choices.map((c,k)=>{
+      const right=res&&c===p.ans,wrong=res&&sel===c&&!res.ok;
+      return <button key={c} disabled={!!res} onClick={()=>{setSel(c);submit(c)}} className={`w-full card p-3 flex items-center gap-3 text-left font-semibold ${right?"!border-emerald-500 bg-emerald-500/10":""} ${wrong?"!border-rose-500 bg-rose-500/10":""}`}>
+        <span className="w-8 h-8 rounded-lg bg-indigo-500/10 text-indigo-500 grid place-items-center text-sm">{OPTS[k]}</span><span className="flex-1">{c}</span>
+        {right&&<Icon n="check" c="text-emerald-500"/>}{wrong&&<Icon n="x" c="text-rose-500"/>}</button>})}</div>
+    :<div className="flex gap-2"><input value={txt} disabled={!!res} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>e.key==="Enter"&&txt.trim()&&submit(txt)} inputMode="text" placeholder="Your answer" className="flex-1 min-w-0 card px-4 py-3 text-lg font-semibold outline-none bg-transparent"/>
+      <Btn onClick={()=>submit(txt)} disabled={!txt.trim()||!!res} cls={Primary}>Check</Btn></div>}
+    {!res&&!comp&&<div className="space-y-2">
+      {hints>0&&<div className="card p-3 text-sm border-amber-400 bg-amber-400/10 space-y-1">{p.hints.slice(0,hints).map((h,k)=><div key={k}><b>Hint {k+1}:</b> {h}</div>)}</div>}
+      {hints<2&&<button onClick={()=>setHints(hints+1)} className="flex items-center gap-2 text-amber-600 font-semibold text-sm"><Icon n="bulb" s={18}/>{hints===0?"Need a nudge?":"Show key formula"}</button>}</div>}
+    {res&&<div className="space-y-3 pop">
+      <div className={`card p-4 ${res.ok?"border-emerald-500":"border-rose-500"}`}>
+        <div className={`font-bold mb-2 flex items-center gap-2 ${res.ok?"text-emerald-500":"text-rose-500"}`}><Icon n={res.ok?"check":"x"}/>{res.ok?"Correct!":`Not quite — the answer is ${p.ans}`}</div>
+        <div className="text-xs font-bold mut uppercase tracking-wide mb-1">Step-by-step</div>
+        <ol className="space-y-1 text-sm list-decimal pl-5">{p.steps.map((s,k)=><li key={k}>{s}</li>)}</ol></div>
+      <Btn onClick={next} cls={`w-full flex items-center justify-center gap-2 ${Primary}`}>{sprint&&i+1>=N?"See results":"Next problem"}<Icon n="arrow" s={18}/></Btn></div>}
+  </div>;
+}
+
+function ShareCard({cfg,r,total,time}){
+  const [msg,setMsg]=useState("");
+  const code=`${TOPICS.indexOf(cfg.topic)}${cfg.level}-${cfg.seed}`;
+  const text=`🧮 MathSprint Challenge\n${cfg.topic} · ${LEVELS[cfg.level]}\nScore: ${r}/${total} · Time: ${fmt(time)}\nBeat me! Code: ${code}`;
+  const doCopy=async()=>{setMsg((await copyText(text))?"Copied to clipboard!":"Copy blocked here. Long-press the text below to copy it.");setTimeout(()=>setMsg(""),2500)};
+  const doShare=async()=>{try{await navigator.share({text})}catch(e){if(!e||e.name!=="AbortError"){setMsg("Sharing is blocked here. Use Copy or the text box below.");setTimeout(()=>setMsg(""),3500)}}};
+  const [g]=TCOL[cfg.topic];
+  return <div className="space-y-3">
+    <div className={`rounded-3xl p-5 text-white bg-gradient-to-br ${g} shadow-xl`}>
+      <div className="flex items-center gap-2 text-sm font-semibold opacity-90"><Icon n="zap" s={16}/>MathSprint Challenge</div>
+      <div className="text-5xl font-extrabold my-2">{r}<span className="text-2xl opacity-80">/{total}</span></div>
+      <div className="text-sm opacity-90">{cfg.topic} · {LEVELS[cfg.level]} · {fmt(time)}</div>
+      <div className="mt-3 inline-block rounded-xl bg-white/20 px-3 py-1 font-mono text-sm">Code {code}</div></div>
+    <div className="flex gap-2"><Btn onClick={doCopy} cls="flex-1 flex items-center justify-center gap-2 bg-slate-800 text-white"><Icon n="copy" s={18}/>Copy score</Btn>
+      {navigator.share&&<Btn onClick={doShare} cls={`flex-1 flex items-center justify-center gap-2 ${Primary}`}><Icon n="share" s={18}/>Share</Btn>}</div>
+    <textarea readOnly value={text} onFocus={e=>e.target.select()} onClick={e=>e.target.select()} rows={5} className="w-full rounded-xl px-3 py-2 bg-transparent border bd text-sm"/>
+    <Btn onClick={async()=>{try{const d=window.claude&&await window.claude.use("downloads");await d.save({filename:"mathsprint-challenge.txt",data:text});setMsg("Saved!")}catch(e){setMsg("Saving is not available here")}setTimeout(()=>setMsg(""),2500)}} cls="card w-full !py-2 text-sm">Save as file</Btn>
+    {msg&&<p className="text-center text-sm text-emerald-500 font-semibold">{msg}</p>}
+  </div>;
+}
+
+function Done({cfg,out,again,home,board}){
+  const {results,time}=out,r=results.filter(x=>x.ok).length,n=results.length;
+  const avg=n?results.reduce((a,x)=>a+x.secs,0)/n:0;
+  return <div className="space-y-5 pop">
+    <div className="text-center pt-2"><div className="text-5xl mb-1">{n&&r/n>=.8?"🏆":r/n>=.5?"🔥":"💪"}</div><h2 className="text-2xl font-extrabold">{n?(r/n>=.8?"Brilliant!":"Nice effort!"):"Session ended"}</h2>
+      <p className="mut text-sm">{r} of {n} correct · avg {avg.toFixed(0)}s per problem</p></div>
+    {cfg.comp?<div className="card p-4 text-center"><div className="text-3xl font-extrabold">{results.reduce((a,x)=>a+x.pts,0)} pts</div><div className="mut text-sm">{cfg.comp.mock?"Warm-up round — not ranked":"Submitted to the leaderboard"}</div></div>:n>0&&<ShareCard cfg={cfg} r={r} total={n} time={time}/>}
+    {!cfg.comp&&n>0&&<SaveSheet cfg={cfg} results={results} time={time}/>}
+    <div className="grid grid-cols-2 gap-3"><Btn onClick={cfg.comp?board:again} cls={Primary}>{cfg.comp?"Leaderboard":"Play again"}</Btn><Btn onClick={home} cls="card">Home</Btn></div>
+  </div>;
+}
+
+function Dash({st,reset,practice}){
+  const [sure,setSure]=useState(false);
+  const tot=TOPICS.reduce((a,t)=>a+st.topics[t].att,0),cor=TOPICS.reduce((a,t)=>a+st.topics[t].cor,0);
+  const weak=weakest(st),fresh=TOPICS.find(t=>st.topics[t].att<3);
+  const rec=weak||fresh;
+  return <div className="space-y-4 pop">
+    <h1 className="text-2xl font-extrabold">Mastery</h1>
+    <div className="grid grid-cols-3 gap-3">{[["Accuracy",tot?`${Math.round(100*cor/tot)}%`:"–"],["Streak",st.streak],["Best",st.best]].map(([l,v])=><div key={l} className="card p-3 text-center"><div className="text-2xl font-extrabold">{v}</div><div className="mut text-xs">{l}</div></div>)}</div>
+    {rec&&<div className="card p-4 border-indigo-400 bg-indigo-500/5"><div className="flex items-center gap-2 font-bold"><Icon n="target" c="text-indigo-500"/>{weak?"Weakest topic":"Recommended next"}: {rec}</div>
+      <p className="mut text-sm my-1">{weak?`Accuracy is ${acc(st.topics[rec])}% — a few more reps will lift it.`:"Solve 3+ problems per topic to unlock smart recommendations."}</p>
+      <Btn onClick={()=>practice(rec)} cls={`${Primary} !py-2 text-sm`}>Practice {rec}</Btn></div>}
+    <div className="space-y-3">{TOPICS.map(t=>{const d=st.topics[t],[g,sym]=TCOL[t];return(
+      <div key={t} className="card p-4"><div className="flex items-center gap-3 mb-2">
+        <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${g} text-white grid place-items-center font-bold`}>{sym}</div>
+        <div className="flex-1"><div className="font-bold text-sm flex items-center gap-2">{t}{weak===t&&<span className="text-[10px] bg-rose-500 text-white rounded-full px-2 py-0.5">WEAKEST</span>}</div>
+          <div className="mut text-xs">{d.cor}/{d.att} correct · {d.att?`${avgT(d).toFixed(0)}s avg solve`:"no data"}</div></div>
+        <div className="font-extrabold">{d.att?`${acc(d)}%`:"–"}</div></div>
+        <div className="h-2 rounded-full bg-slate-300/40 overflow-hidden"><div className={`h-full bg-gradient-to-r ${g}`} style={{width:`${acc(d)}%`}}/></div></div>)})}</div>
+    <button onClick={()=>{if(sure){reset();setSure(false)}else setSure(true)}} className="mx-auto flex items-center gap-2 text-sm mut py-2"><Icon n="trash" s={16}/>{sure?"Tap again to erase all progress":"Reset progress"}</button>
+  </div>;
+}
+
+/* ============ SAVE SCORESHEET ============ */
+function SaveSheet({cfg,results,time}){
+  const [msg,setMsg]=useState("");
+  const n=results.length,r=results.filter(x=>x.ok).length;
+  const text=`MathSprint scoresheet\n${cfg.topic} · ${LEVELS[cfg.level]} · ${cfg.mode==="sprint"?"Sprint":"Practice"}\nScore: ${r}/${n} (${Math.round(100*r/n)}%)\nTotal time: ${fmt(time)} · avg ${(results.reduce((a,x)=>a+x.secs,0)/n).toFixed(0)}s per problem\n\n`+results.map((x,i)=>`Q${i+1}: ${x.ok?"Correct":"Incorrect"} · ${x.secs.toFixed(0)}s${x.hints?` · ${x.hints} hint(s)`:""}`).join("\n");
+  const flash=m=>{setMsg(m);setTimeout(()=>setMsg(""),2200)};
+  const dl=async()=>{try{const d=window.claude&&await window.claude.use("downloads");if(!d)return flash("Download unavailable");await d.save({filename:"mathsprint-scoresheet.txt",data:text});flash("Saved!")}catch(e){flash("Not saved")}};
+  return <div className="card p-4 space-y-2">
+    <div className="text-sm font-bold">Save your scoresheet</div>
+    <div className="flex gap-2 flex-wrap">
+      <Btn onClick={async()=>flash((await copyText(text))?"Copied!":"Copy failed")} cls="card !py-2 text-sm flex-1">Copy</Btn>
+      {navigator.share&&<Btn onClick={async()=>{try{await navigator.share({text})}catch(e){if(!e||e.name!=="AbortError")flash("Sharing is blocked here. Use Copy.")}}} cls="card !py-2 text-sm flex-1">Share</Btn>}
+      <Btn onClick={dl} cls="card !py-2 text-sm flex-1">Download</Btn></div>
+    {msg&&<p className="text-emerald-500 text-sm font-semibold">{msg}</p>}
+    <p className="mut text-xs">Paste it into any email or message to send it.</p>
+  </div>;
+}
+
+/* ============ DATE + COMPETITION HELPERS ============ */
+const fact=n=>n<2?1:n*fact(n-1);
+const sod=d=>{const x=new Date(d);x.setHours(0,0,0,0);return x};
+const addD=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const dstr=d=>`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,"0")}${String(d.getDate()).padStart(2,"0")}`;
+const niceD=d=>d.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});
+const firstSunDec=y=>{const d=new Date(y,11,1);return addD(d,(7-d.getDay())%7)};
+const jl=(k,d)=>{try{const v=JSON.parse(localStorage.getItem("mathsprint:"+k));return v??d}catch(e){return d}};
+const js=(k,v)=>{try{localStorage.setItem("mathsprint:"+k,JSON.stringify(v))}catch(e){}};
+/* Weekly: every Sunday. Annual Championship: first Sunday of December. */
+const COMP={weekly:{n:10,limit:1200,title:"Sunday Sprint"},annual:{n:20,limit:3600,title:"Annual Championship"}};
+const compQ=(c,i)=>{const lv=c.levels?c.levels[i]:c.kind==="annual"?(i<6?0:i<14?1:2):(i<4?0:i<8?1:2);return[TOPICS[(i+c.seedBase)%TOPICS.length],lv,c.seedBase*100+i]};
+function compInfo(){
+  const t=sod(new Date()),y=t.getFullYear(),champ=firstSunDec(y),last=addD(t,-t.getDay()),aYear=t>=champ?y:y-1;
+  return{wOpen:t.getDay()===0,wDate:addD(t,t.getDay()?7-t.getDay():0),wId:"w"+dstr(last),wSeed:+dstr(last),
+    aOpen:+t===+champ,cDate:t>champ?firstSunDec(y+1):champ,aId:"a"+aYear,aSeed:aYear};
+}
+const IN="w-full rounded-xl px-3 py-2 bg-transparent border bd outline-none";
+const Chip=({on,onClick,children})=><button onClick={onClick} className={`px-3 py-1.5 rounded-xl text-sm font-semibold border bd ${on?"bg-indigo-600 text-white !border-indigo-600":"mut"}`}>{children}</button>;
+
+/* ============ COMPETE TAB ============ */
+function CompCard({kind,open,date,pid,seed,mine,startComp,canRank}){
+  const c=COMP[kind],done=mine[pid],days=Math.ceil((date-sod(new Date()))/864e5);
+  return <div className="card p-4">
+    <div className="flex items-center gap-2 font-bold"><Icon n="trophy" c="text-amber-500"/>{c.title}</div>
+    <p className="mut text-sm my-1">{c.n} questions · {c.limit/60} min · mixed topics · no hints · one ranked attempt</p>
+    {open?(done?<p className="text-emerald-500 font-semibold text-sm">Your one attempt is used: {done.pts} pts. See the leaderboard below.</p>
+      :canRank?<Btn onClick={()=>startComp(kind,pid,seed,false)} cls={`${Primary} w-full mt-1`}>Enter now (one attempt)</Btn>:<p className="text-sm font-semibold">Sign in with your claude.ai account to enter a ranked round.</p>)
+      :<p className="text-sm font-semibold">Opens {niceD(date)} · in {days} day{days===1?"":"s"}</p>}
+    <button onClick={()=>startComp(kind,"mock"+Date.now(),Math.floor(Math.random()*90000)+10000,true)} className="text-indigo-500 text-sm font-semibold mt-2">Try an unranked warm-up round</button></div>;
+}
+function Compete({id,setId,db,info,mine,board,startComp,nick,setNick,goChamp}){
+  const [view,setView]=useState("weekly"),[email,setEmail]=useState("");
+  const pid=view==="weekly"?info.wId:info.aId;
+  let rows=board.filter(r=>r.scores&&r.scores[pid]).map(r=>({id:r.id,name:r.name||"Player",...r.scores[pid]}));
+  if(!(id&&id.uid)&&mine[pid])rows.push({id:"local",name:nick||"You",...mine[pid]});
+  rows.sort((a,b)=>b.pts-a.pts||a.time-b.time);
+  const me=r=>r.id==="local"||(id&&r.id===id.uid);
+  return <div className="space-y-4 pop">
+    <h1 className="text-2xl font-extrabold">Compete</h1>
+    <div className="card p-4 space-y-2">
+      {id?<><div className="flex items-center justify-between text-sm"><span>Signed in as <b>{id.email||"your claude.ai account"}</b>{!id.verified&&<span className="mut"> (unverified)</span>}</span>
+        {!id.verified&&<button className="text-indigo-500 font-semibold" onClick={()=>setId(null)}>Sign out</button>}</div>
+        <input className={IN} value={nick} onChange={e=>setNick(e.target.value.slice(0,20))} placeholder="Leaderboard nickname (your email is never shown)"/>
+        {!(id.uid&&db)&&<p className="mut text-xs">Without a claude.ai sign-in your scores stay on this device. Open this page signed in to claude.ai to join the shared leaderboard.</p>}</>
+      :<><div className="text-sm font-semibold">Not signed in</div>
+        <p className="mut text-xs">Ranked rounds need a verified account. Open this page while signed in to claude.ai (including with Google) and you are recognised automatically. Warm-up rounds and training work without signing in.</p></>}
+    </div>
+    <CompCard kind="weekly" open={info.wOpen} date={info.wDate} pid={info.wId} seed={info.wSeed} mine={mine} startComp={startComp} canRank={!!(id&&id.uid&&db)}/>
+    <button onClick={goChamp} className="w-full rounded-3xl p-4 text-left text-white bg-gradient-to-br from-amber-500 to-rose-600 shadow-lg flex items-center gap-3"><Icon n="crown" s={26}/><div><div className="font-extrabold">MathSprint Championship</div><div className="text-xs opacity-90">One Chance. One Winner.</div></div><Icon n="arrow" c="ml-auto"/></button>
+    
+    <div className="card overflow-hidden">{rows.length===0?<p className="mut text-sm p-4 text-center">No scores yet for this round. Be the first!</p>:
+      rows.slice(0,25).map((r,k)=><div key={r.id} className={`flex items-center gap-3 px-4 py-3 border-b bd last:border-0 ${me(r)?"bg-indigo-500/10":""}`}>
+        <div className="w-6 font-extrabold">{k<3?["🥇","🥈","🥉"][k]:k+1}</div><div className="flex-1 font-semibold truncate">{r.name}{me(r)&&" (you)"}</div>
+        <div className="text-right"><div className="font-extrabold">{r.pts} pts</div><div className="mut text-xs">{r.correct} correct · {fmt(r.time)}</div></div></div>)}</div>
+  </div>;
+}
+
+/* ============ PLAN TAB (revision timetable) ============ */
+const MODES=[["spaced","Spaced revision","Expanding review gaps","timer"],["cram","Cramming","Intensive final 3 days","zap"],["test","Testing","Quizzes + mock tests","target"]];
+function makePlan(t){
+  const today=sod(new Date()),D=Math.round((sod(new Date(t.date+"T00:00:00"))-today)/864e5);
+  if(D<1)return[];
+  const tp=t.topics.split(",").map(x=>x.trim()).filter(Boolean),topics=tp.length?tp:[t.subject];
+  const days=Array.from({length:D},()=>[]),add=(d,topic,label)=>{if(d>=0&&d<D)days[d].push({topic,label})};
+  if(t.mode==="spaced"){
+    const off=t.conf<=2?[0,1,2,4,7,12,18,25]:[0,1,3,7,14,21,30];
+    topics.forEach((x,k)=>{const s=Math.floor(k*Math.max(1,Math.min(D-1,D/2))/topics.length);off.forEach((o,j)=>add(s+o,x,j?`Spaced review ${j}: recall without notes`:"First study session"))});
+    if(D>1)add(D-1,"All topics","Final light review and flashcards");
+  }else if(t.mode==="cram"){
+    const w=Math.min(D,3),labs=["Intensive learning","Past-paper practice","Final recap and weak spots"];
+    for(let j=0;j<w;j++)topics.forEach(x=>add(D-w+j,x,labs[3-w+j]));
+    add(D-w-1,"Prepare","Gather notes, past papers and a formula sheet");
+  }else{
+    add(0,"All topics","Diagnostic quiz to find your gaps");
+    for(let d=1;d<D-2;d++)add(d,topics[(d-1)%topics.length],d%2?"Closed-book practice quiz":"Quiz, then fix every mistake");
+    if(D>=3){add(D-2,"All topics","Full timed mock test");add(D-1,"Mistake log","Redo every question you got wrong")}
+    else if(D===2)add(1,"All topics","Full timed mock test");
+  }
+  return days.map((tasks,di)=>({di,date:addD(today,di),tasks:tasks.map(x=>({...x,mins:Math.max(10,Math.round(t.mins/tasks.length/5)*5)}))})).filter(d=>d.tasks.length);
+}
+function Plan({tests,setTests,done,setDone,practice}){
+  const blankF={subject:"",date:"",topics:"",mode:"spaced",mins:45,conf:3};
+  const [f,setF]=useState(blankF),[open,setOpen]=useState(null),[msg,setMsg]=useState(""),[cp,setCp]=useState("");
+  const add=()=>{
+    if(!f.subject.trim()||!f.date)return setMsg("Add a subject and a test date.");
+    if(new Date(f.date+"T00:00:00")<=sod(new Date()))return setMsg("Pick a test date after today.");
+    const id=String(Date.now());setTests([...tests,{...f,id}]);setOpen(id);setF(blankF);setMsg("");
+  };
+  const mathTopic=x=>TOPICS.find(t=>t.toLowerCase()===x.toLowerCase());
+  return <div className="space-y-4 pop">
+    <h1 className="text-2xl font-extrabold">Revision planner</h1>
+    <div className="card p-4 space-y-3">
+      <div className="text-sm font-bold">Add a test</div>
+      <input className={IN} value={f.subject} onChange={e=>setF({...f,subject:e.target.value})} placeholder="Subject (e.g. Maths mid-term, Biology)"/>
+      <input className={IN} type="date" value={f.date} onChange={e=>setF({...f,date:e.target.value})}/>
+      <input className={IN} value={f.topics} onChange={e=>setF({...f,topics:e.target.value})} placeholder="Topics, comma separated (any subject)"/>
+      <div><div className="text-xs mut font-semibold mb-1">Confidence (1 = shaky, 5 = strong)</div><div className="flex gap-2">{[1,2,3,4,5].map(n=><Chip key={n} on={f.conf===n} onClick={()=>setF({...f,conf:n})}>{n}</Chip>)}</div></div>
+      <div><div className="text-xs mut font-semibold mb-1">Study time per day (minutes)</div><div className="flex gap-2 flex-wrap">{[20,30,45,60,90].map(n=><Chip key={n} on={f.mins===n} onClick={()=>setF({...f,mins:n})}>{n}</Chip>)}</div></div>
+      <div className="grid grid-cols-3 gap-2">{MODES.map(([k,t,d,ic])=><button key={k} onClick={()=>setF({...f,mode:k})} className={`card p-2 text-left ${f.mode===k?"ring-2 ring-indigo-500":""}`}><Icon n={ic} s={18} c="text-indigo-500"/><div className="font-bold text-xs mt-1">{t}</div><div className="mut text-[11px] leading-tight">{d}</div></button>)}</div>
+      {msg&&<p className="text-rose-500 text-sm">{msg}</p>}
+      <Btn onClick={add} cls={`w-full ${Primary}`}>Create timetable</Btn></div>
+    {tests.map(t=>{
+      const plan=makePlan(t),all=plan.flatMap(d=>d.tasks.map((_,k)=>`${t.id}|${d.di}|${k}`)),n=all.filter(k=>done[k]).length,mode=MODES.find(m=>m[0]===t.mode);
+      return <div key={t.id} className="card p-4">
+        <button className="w-full text-left" onClick={()=>setOpen(open===t.id?null:t.id)}>
+          <div className="flex items-center gap-2"><Icon n="cal" c="text-indigo-500"/><b className="flex-1">{t.subject}</b><span className="text-xs mut">{new Date(t.date+"T00:00:00").toLocaleDateString(undefined,{month:"short",day:"numeric"})}</span></div>
+          <div className="mut text-xs my-1">{mode[1]} · {t.mins} min/day · {n}/{all.length} tasks done</div>
+          <div className="h-2 rounded-full bg-slate-300/40 overflow-hidden"><div className="h-full bg-indigo-500" style={{width:`${all.length?100*n/all.length:0}%`}}/></div></button>
+        {open===t.id&&<div className="mt-3 space-y-3">
+          {plan.length===0&&<p className="mut text-sm">This test date has passed.</p>}
+          {plan.map(d=><div key={d.di}><div className="text-xs font-bold mut uppercase tracking-wide mb-1">{niceD(d.date)}{d.di===0&&" · today"}</div>
+            {d.tasks.map((x,k)=>{const key=`${t.id}|${d.di}|${k}`,m=mathTopic(x.topic);return <div key={key} className="flex items-start gap-2 py-1">
+              <button onClick={()=>setDone({...done,[key]:!done[key]})} className={`mt-0.5 w-5 h-5 rounded-md border bd grid place-items-center shrink-0 ${done[key]?"bg-emerald-500 !border-emerald-500 text-white":""}`}>{done[key]&&<Icon n="check" s={14}/>}</button>
+              <div className={`flex-1 text-sm ${done[key]?"line-through opacity-50":""}`}><b>{x.topic}</b>: {x.label} <span className="mut">· {x.mins} min</span></div>
+              {m&&<button onClick={()=>practice(m)} className="text-xs text-indigo-500 font-semibold shrink-0">Practice</button>}</div>})}</div>)}
+          <div className="flex gap-2 pt-1">
+            <Btn onClick={async()=>{const txt=`${t.subject} timetable\n`+plan.map(d=>niceD(d.date)+"\n"+d.tasks.map(x=>`- ${x.topic}: ${x.label} (${x.mins} min)`).join("\n")).join("\n");setCp((await copyText(txt))?"Copied!":"Copy failed");setTimeout(()=>setCp(""),2000)}} cls="card !py-2 text-sm flex-1">{cp||"Copy timetable"}</Btn>
+            <Btn onClick={()=>setTests(tests.filter(x=>x.id!==t.id))} cls="card !py-2 text-sm text-rose-500">Delete</Btn></div></div>}
+      </div>})}
+  </div>;
+}
+
+/* ============ LIVE QUIZ (host + join, Kahoot style) ============ */
+const COLS=["bg-rose-500","bg-blue-500","bg-amber-500","bg-emerald-500"],SH=["▲","◆","●","■"];
+const AL="ABCDEFGHJKMNPQRSTUVWXYZ23456789",genCode=()=>Array.from({length:5},()=>AL[Math.floor(Math.random()*AL.length)]).join("");
+const getRoom=async c=>{const rm=window.claude&&await window.claude.use("room");if(!rm)throw new Error("na");return rm.join("ms-"+c.toLowerCase())};
+const NA="Live play is not available here. Players need the page shared with them with interact access.";
+const Choices=({p,pick,sel,disabled})=><div className="grid grid-cols-2 gap-2">{p.choices.map((c,k)=><button key={c} disabled={disabled} onClick={()=>pick&&pick(c)} className={`${COLS[k]} text-white rounded-2xl p-4 font-bold text-left min-h-[72px] ${sel&&sel!==c?"opacity-40":""}`}><span className="opacity-80 mr-2">{SH[k]}</span>{c}</button>)}</div>;
+const Board=({players,myId,top=5})=><div className="card overflow-hidden">{players.length===0?<p className="mut text-sm p-4 text-center">No players yet</p>:players.slice(0,top).map((x,k)=><div key={x.id} className={`flex items-center gap-3 px-4 py-2.5 border-b bd last:border-0 ${x.id===myId?"bg-indigo-500/10":""}`}>
+  <div className="w-6 font-extrabold">{k<3?["🥇","🥈","🥉"][k]:k+1}</div><div className="flex-1 font-semibold truncate">{x.name}</div>
+  {x.gain>0&&<span className="text-emerald-500 text-xs font-bold">+{x.gain}</span>}<div className="font-extrabold">{x.score}</div></div>)}</div>;
+const Pill=({on,onClick,children})=><button onClick={onClick} className={`px-3 py-1.5 rounded-xl text-sm font-semibold border bd ${on?"bg-indigo-600 text-white !border-indigo-600":"mut"}`}>{children}</button>;
+
+function Live(){
+  const [mode,setMode]=useState(null);
+  if(mode==="host")return <LiveHost exit={()=>setMode(null)}/>;
+  if(mode==="join")return <LivePlayer exit={()=>setMode(null)}/>;
+  return <div className="space-y-4 pop">
+    <h1 className="text-2xl font-extrabold">Live quiz</h1>
+    <p className="mut text-sm">Play together in real time. The host picks a topic and shares a code, players join on their own phones.</p>
+    {[["host","Host a game","Pick a topic and get a join code","from-fuchsia-500 to-indigo-600","zap"],["join","Join a game","Enter a code and a nickname","from-emerald-500 to-teal-600","users"]].map(([k,t,d,g,ic])=>
+      <button key={k} onClick={()=>setMode(k)} className={`w-full rounded-3xl p-5 text-left text-white bg-gradient-to-br ${g} shadow-lg flex items-center gap-4`}><Icon n={ic} s={30}/><div><div className="text-lg font-extrabold">{t}</div><div className="text-sm opacity-90">{d}</div></div></button>)}
+  </div>;
+}
+
+function LiveHost({exit}){
+  const [c,setC]=useState({topic:TOPICS[0],level:1,n:8,secs:20}),[code,setCode]=useState(null),[err,setErr]=useState(""),[s,setS]=useState(null);
+  const g=useRef(null),timer=useRef(null);
+  const roster=()=>g.current.room.peers().filter(x=>x.presence&&x.presence.role==="p").map(x=>({id:x.peer,name:String(x.presence.name||"Player").slice(0,16)}));
+  const pub=()=>{const G=g.current,pl=roster().map(x=>({...x,score:G.scores[x.id]||0,gain:G.gain[x.id]||0,ok:!!G.ok[x.id],answered:!!G.answered[x.id]})).sort((a,b)=>b.score-a.score);
+    const st={phase:G.phase,qi:G.qi,n:G.cfg.n,topic:G.cfg.topic,level:G.cfg.level,secs:G.cfg.secs,seedBase:G.seedBase,left:G.left,ans:G.phase==="reveal"?G.ans:null,players:pl};
+    G.room.emit("state",st).catch(()=>{});setS(st)};
+  const startQ=i=>{const G=g.current;Object.assign(G,{phase:"q",qi:i,left:G.cfg.secs,answered:{},gain:{},ok:{}});G.ans=buildProblem(G.cfg.topic,G.cfg.level,G.seedBase+i*7919).ans;pub()};
+  const next=()=>{const G=g.current;if(G.qi+1>=G.cfg.n){G.phase="final";pub()}else startQ(G.qi+1)};
+  const create=async()=>{try{
+    const cd=genCode(),room=await getRoom(cd);
+    g.current={room,cfg:c,phase:"lobby",qi:0,left:0,scores:{},answered:{},gain:{},ok:{},seedBase:Math.floor(Math.random()*90000)+10000};
+    await room.presence({role:"h"});
+    room.on("ans",m=>{const G=g.current,d=m.data||{};if(G.phase!=="q"||d.qi!==G.qi||G.answered[m.peer])return;
+      const ok=d.choice===G.ans,pts=ok?500+Math.round(500*G.left/G.cfg.secs):0;G.answered[m.peer]=1;G.ok[m.peer]=ok;G.gain[m.peer]=pts;G.scores[m.peer]=(G.scores[m.peer]||0)+pts});
+    timer.current=setInterval(()=>{const G=g.current;if(G.phase==="q"){G.left--;const r=roster();if(G.left<=0||(r.length&&r.every(x=>G.answered[x.id])))G.phase="reveal"}pub()},1000);
+    setCode(cd);pub();
+  }catch(e){setErr(`${NA} (${(e&&(e.code||e.message))||"error"})`)}};
+  useEffect(()=>()=>{clearInterval(timer.current);g.current&&g.current.room.leave().catch(()=>{})},[]);
+  const prob=s&&(s.phase==="q"||s.phase==="reveal")?buildProblem(s.topic,s.level,s.seedBase+s.qi*7919):null;
+  const Top=<div className="flex items-center gap-2"><button onClick={exit} className="mut p-1"><Icon n="x"/></button>{code&&<div className="ml-auto text-sm mut">Code <b className="font-mono tracking-widest text-base text-current">{code}</b></div>}</div>;
+  if(!code)return <div className="space-y-4 pop">{Top}<h1 className="text-2xl font-extrabold">Host a game</h1>
+    <div><div className="text-xs font-bold mut uppercase mb-2">Topic</div><div className="flex flex-wrap gap-2">{TOPICS.map(t=><Pill key={t} on={c.topic===t} onClick={()=>setC({...c,topic:t})}>{t}</Pill>)}</div></div>
+    <div><div className="text-xs font-bold mut uppercase mb-2">Difficulty</div><div className="flex gap-2">{LEVELS.map((l,i)=><Pill key={l} on={c.level===i} onClick={()=>setC({...c,level:i})}>{l}</Pill>)}</div></div>
+    <div><div className="text-xs font-bold mut uppercase mb-2">Questions</div><div className="flex gap-2">{[5,8,10,15].map(n=><Pill key={n} on={c.n===n} onClick={()=>setC({...c,n})}>{n}</Pill>)}</div></div>
+    <div><div className="text-xs font-bold mut uppercase mb-2">Seconds per question</div><div className="flex gap-2">{[15,20,30,45].map(n=><Pill key={n} on={c.secs===n} onClick={()=>setC({...c,secs:n})}>{n}</Pill>)}</div></div>
+    {err&&<p className="text-rose-500 text-sm">{err}</p>}
+    <Btn onClick={create} cls={`w-full ${Primary}`}>Create game &amp; get join code</Btn></div>;
+  if(!s)return <div className="space-y-4">{Top}<p className="mut">Starting…</p></div>;
+  return <div className="space-y-4 pop">{Top}
+    {s.phase==="lobby"&&<><div className="rounded-3xl p-6 text-center text-white bg-gradient-to-br from-fuchsia-500 to-indigo-600 shadow-xl"><div className="text-sm opacity-90">Join with code</div><div className="text-5xl font-extrabold font-mono tracking-widest my-2">{code}</div><div className="text-sm opacity-90">{s.topic} · {LEVELS[s.level]} · {s.n} questions</div></div>
+      <div className="font-bold">{s.players.length} player{s.players.length===1?"":"s"} joined</div>
+      <div className="flex flex-wrap gap-2">{s.players.map(x=><span key={x.id} className="card px-3 py-1.5 text-sm font-semibold">{x.name}</span>)}</div>
+      <Btn disabled={!s.players.length} onClick={()=>startQ(0)} cls={`w-full ${Primary}`}>Start quiz</Btn></>}
+    {s.phase==="q"&&prob&&<><div className="flex justify-between text-sm font-bold"><span>Question {s.qi+1} of {s.n}</span><span className={s.left<=5?"text-rose-500":""}>{s.left}s</span></div>
+      <div className="card p-5"><p className="text-lg font-semibold">{prob.q}</p></div><Choices p={prob} disabled/>
+      <p className="text-center mut text-sm">{s.players.filter(x=>x.answered).length} of {s.players.length} answered</p></>}
+    {s.phase==="reveal"&&prob&&<><div className="card p-4 border-emerald-500"><div className="text-xs mut font-bold uppercase">Correct answer</div><div className="text-2xl font-extrabold text-emerald-500">{s.ans}</div>
+      <ol className="text-sm list-decimal pl-5 mt-2">{prob.steps.map((t,k)=><li key={k}>{t}</li>)}</ol></div>
+      <Board players={s.players}/><Btn onClick={next} cls={`w-full ${Primary}`}>{s.qi+1>=s.n?"Show final results":"Next question"}</Btn></>}
+    {s.phase==="final"&&<><div className="text-center"><div className="text-5xl">🏆</div><h2 className="text-2xl font-extrabold">Final results</h2></div><Board players={s.players} top={10}/><Btn onClick={exit} cls="card w-full">Close game</Btn></>}
+  </div>;
+}
+
+function LivePlayer({exit}){
+  const [code,setCode]=useState(""),[nick,setNick]=useState(()=>jl("livenick","")),[err,setErr]=useState(""),[s,setS]=useState(null),[picked,setPicked]=useState(null),[ready,setReady]=useState(false);
+  const R=useRef(null);
+  const join=async()=>{try{
+    const room=await getRoom(code.trim().toUpperCase());R.current=room;
+    room.on("state",m=>{if(m.data&&m.data.phase)setS(m.data)});
+    await room.presence({role:"p",name:nick.trim().slice(0,16)});js("livenick",nick);setReady(true);
+  }catch(e){setErr(`Could not join that game. Check the code. (${(e&&(e.code||e.message))||"error"})`)}};
+  useEffect(()=>()=>{R.current&&R.current.leave().catch(()=>{})},[]);
+  const myId=ready?(R.current.peers().find(x=>x.isMe)||{}).peer:null;
+  const pick=c=>{if(picked&&picked.qi===s.qi)return;setPicked({qi:s.qi,choice:c});R.current.emit("ans",{qi:s.qi,choice:c}).catch(()=>{})};
+  const prob=s&&(s.phase==="q"||s.phase==="reveal")?buildProblem(s.topic,s.level,s.seedBase+s.qi*7919):null;
+  const mine=picked&&s&&picked.qi===s.qi?picked.choice:null;
+  const idx=s?s.players.findIndex(x=>x.id===myId):-1,me=idx>=0?s.players[idx]:null;
+  const Top=<div className="flex items-center"><button onClick={exit} className="mut p-1"><Icon n="x"/></button></div>;
+  if(!ready)return <div className="space-y-4 pop">{Top}<h1 className="text-2xl font-extrabold">Join a game</h1>
+    <input value={code} onChange={e=>setCode(e.target.value.toUpperCase())} maxLength={5} placeholder="CODE" className="w-full text-center text-3xl font-mono tracking-widest rounded-2xl px-3 py-4 bg-transparent border bd outline-none"/>
+    <input value={nick} onChange={e=>setNick(e.target.value)} maxLength={16} placeholder="Nickname" className="w-full text-center text-lg rounded-2xl px-3 py-3 bg-transparent border bd outline-none"/>
+    {err&&<p className="text-rose-500 text-sm">{err}</p>}
+    <Btn disabled={code.trim().length<5||!nick.trim()} onClick={join} cls={`w-full ${Primary}`}>Join</Btn></div>;
+  return <div className="space-y-4 pop">{Top}
+    {(!s||s.phase==="lobby")&&<div className="text-center py-10"><div className="text-5xl mb-2">🎮</div><h2 className="text-xl font-extrabold">You are in, {nick}!</h2><p className="mut text-sm mt-1">Waiting for the host to start…{s&&` ${s.players.length} player${s.players.length===1?"":"s"} here.`}</p></div>}
+    {s&&s.phase==="q"&&prob&&<><div className="flex justify-between text-sm font-bold"><span>Question {s.qi+1} of {s.n}</span><span className={s.left<=5?"text-rose-500":""}>{s.left}s</span></div>
+      <div className="card p-5"><p className="text-lg font-semibold">{prob.q}</p></div>
+      <Choices p={prob} pick={pick} sel={mine} disabled={!!mine}/>{mine&&<p className="text-center text-sm font-semibold text-indigo-500">Answer locked in. Waiting for the others…</p>}</>}
+    {s&&s.phase==="reveal"&&<div className="text-center space-y-3"><div className={`rounded-3xl p-6 text-white ${me&&me.ok?"bg-emerald-500":"bg-rose-500"}`}>
+      <div className="text-4xl">{me&&me.ok?"✓":"✗"}</div><div className="text-xl font-extrabold">{me&&me.ok?"Correct!":me&&me.answered?"Not quite":"No answer"}</div>{me&&me.gain>0&&<div className="font-bold">+{me.gain} points</div>}</div>
+      <div className="card p-3 text-sm">Answer: <b>{s.ans}</b></div>
+      {me&&<div className="font-bold">Rank {idx+1} of {s.players.length} · {me.score} pts</div>}</div>}
+    {s&&s.phase==="final"&&<div className="space-y-3"><div className="text-center"><div className="text-5xl">{idx===0?"🏆":"🎉"}</div><h2 className="text-2xl font-extrabold">{me?`You finished #${idx+1}`:"Game over"}</h2>{me&&<p className="mut">{me.score} points</p>}</div><Board players={s.players} myId={myId} top={10}/><Btn onClick={exit} className="" cls="card w-full">Leave</Btn></div>}
+  </div>;
+}
+
+/* ============ BRAND ============ */
+const Logo=({s=40})=><svg width={s} height={s} viewBox="0 0 64 64" role="img" aria-label="MathSprint logo"><defs><linearGradient id="msg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#4f46e5"/><stop offset="1" stopColor="#c026d3"/></linearGradient><radialGradient id="msh" cx=".25" cy=".15" r=".8"><stop offset="0" stopColor="#fff" stopOpacity=".35"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></radialGradient></defs><rect width="64" height="64" rx="18" fill="url(#msg)"/><rect width="64" height="64" rx="18" fill="url(#msh)"/><g transform="translate(4.5 0) skewX(-8)" fill="none" stroke="#fff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round"><path className="lg-b" d="M13 24H50"/><path d="M24 24V47"/><path d="M36 24V39Q36 47 45 47"/><path className="lg-a" d="M43 16L51 24L43 32"/></g></svg>;
+const Brand=({onClick})=><button onClick={onClick} className="flex items-center gap-2"><Logo s={32}/><span className="font-extrabold text-lg tracking-tight">Math<span className="grad">Sprint</span></span></button>;
+
+/* ============ CHAMPIONSHIP (once a year, 3 stages) ============ */
+const FEE={1:30,2:50,3:100};
+const CH=[
+ {id:"s1",stage:1,short:"Entry",name:"Entry Stage",d:0,n:20,limit:3600,cut:128,lv:i=>i<6?0:i<14?1:2,blurb:"Everyone starts here. Twenty questions stand between you and the Top 128."},
+ {id:"r1",stage:2,short:"R1",name:"Round 1",d:7,n:15,limit:2700,cut:64,lv:i=>i<4?1:2,blurb:"128 enter. Only 64 survive. The questions just got serious."},
+ {id:"r2",stage:2,short:"R2",name:"Round 2",d:14,n:15,limit:2700,cut:32,lv:i=>i<2?1:2,blurb:"64 enter. 32 survive. Half the field goes home."},
+ {id:"r3",stage:2,short:"R3",name:"Round 3: The Ultimate Prize",d:21,n:12,limit:3000,cut:16,lv:()=>2,blurb:"32 enter. Only 16 earn a seat in the Grand Final."},
+ {id:"f",stage:3,short:"Final",name:"Grand Final",d:28,n:12,limit:3600,cut:1,lv:()=>2,blurb:"Sixteen players. Twelve Olympiad questions. One crown."}
+];
+const STAGE_TITLES={1:"Stage 1 · Entry",2:"Stage 2 · Knockout Rounds",3:"Stage 3 · The Grand Final"};
+const prizeOf=k=>k===0?"🏆 Trophy + certificate":k===1?"🥈 Medal + certificate":k>=2&&k<5?"📜 Certificate":"";
+function champInfo(){
+  const t=sod(new Date());let Y=t.getFullYear();
+  if(t>addD(firstSunDec(Y),28))Y++;
+  const base=firstSunDec(Y);
+  return{Y,stages:CH.map(s=>{const date=addD(base,s.d);return{...s,date,pid:`c${Y}-${s.id}`,open:+t===+date,past:t>date}})};
+}
+function Confetti(){const cols=["#f59e0b","#ec4899","#6366f1","#10b981","#3b82f6"];
+  return <div aria-hidden="true" className="pointer-events-none fixed inset-0 overflow-hidden" style={{zIndex:0}}>{Array.from({length:36},(_,i)=><span key={i} className="confetti" style={{left:`${(i*37)%100}%`,background:cols[i%5],animationDelay:`${(i%12)*0.25}s`,animationDuration:`${3+(i%5)*0.6}s`}}/>)}</div>}
+
+function Celebrate({rows,uid,preview,Y,name,onBack,cut,next}){
+  const [msg,setMsg]=useState("");
+  const SAMPLE=["Layla","Omar","Aisha","Yusuf","Mariam","Khalid","Noor","Zayed","Sara","Hamad","Dana","Rashid"];
+  const list=preview?SAMPLE.map((n,i)=>({id:"p"+i,name:i===3?name:n,pts:1180-i*41,correct:19-Math.floor(i/4),time:1500+i*35})):rows.slice(0,cut);
+  const idx=preview?3:list.findIndex(r=>uid&&r.id===uid),me=idx>=0?list[idx]:null;
+  const text=me?`🎉 I qualified for the MathSprint Championship ${Y} Knockout Rounds! Rank #${idx+1} of ${cut} · ${me.pts} pts. One Chance. One Winner.`:"";
+  return <div className="space-y-4 pop relative" style={{zIndex:1}}>
+    {me&&<Confetti/>}
+    <button onClick={onBack} className="mut text-sm font-semibold flex items-center gap-1"><span className="rotate-180 inline-block"><Icon n="arrow" s={16}/></span>Back to Championship</button>
+    {preview&&<div className="text-xs font-bold text-amber-600 bg-amber-400/10 border border-amber-400 rounded-xl px-3 py-2">PREVIEW with sample names. The real page unlocks when Stage 1 ends.</div>}
+    <div className="text-center pt-2"><div className="text-6xl">{me?"🎉":"🏁"}</div>
+      <h1 className="text-3xl font-extrabold mt-2">{me?`You’re in the Top ${cut}!`:`Meet the Top ${cut}`}</h1>
+      <p className="mut text-sm mt-1">{me?"Stage 1 is behind you. The Knockout Rounds are next.":`These ${cut} players survived Stage 1 and move on to the Knockout Rounds.`}</p></div>
+    {me&&<div className="rounded-3xl p-6 text-center text-white bg-gradient-to-br from-indigo-600 via-violet-600 to-fuchsia-600 shadow-xl">
+      <div className="flex justify-center"><Logo s={44}/></div>
+      <div className="text-xs tracking-widest font-bold opacity-80 mt-3">CERTIFICATE OF QUALIFICATION</div>
+      <div className="text-2xl font-extrabold my-2">{me.name}</div>
+      <div className="text-sm opacity-90">has qualified for Stage 2 of the<br/>MathSprint Championship {Y}</div>
+      <div className="flex justify-center gap-3 mt-4 text-sm"><div className="rounded-xl bg-white/20 px-3 py-2"><div className="font-extrabold text-lg">#{idx+1}</div><div className="opacity-80 text-xs">of {cut}</div></div><div className="rounded-xl bg-white/20 px-3 py-2"><div className="font-extrabold text-lg">{me.pts}</div><div className="opacity-80 text-xs">points</div></div></div></div>}
+    {me&&<Btn onClick={async()=>{setMsg((await copyText(text))?"Copied! Paste it anywhere to celebrate.":"Copy blocked here");setTimeout(()=>setMsg(""),2500)}} cls={`w-full ${Primary}`}>Share my qualification</Btn>}
+    {msg&&<p className="text-center text-sm text-emerald-500 font-semibold">{msg}</p>}
+    {next&&<div className="card p-4"><div className="font-bold">What happens next</div><p className="text-sm mut mt-1">{next}</p></div>}
+    <div className="card overflow-hidden"><div className="px-4 py-3 font-bold border-b bd">The Top {cut}</div>
+      {list.length===0?<p className="mut text-sm p-4 text-center">Results will appear here.</p>:list.map((r,k)=><div key={r.id} className={`flex items-center gap-3 px-4 py-2.5 border-b bd last:border-0 ${k===idx?"bg-indigo-500/10":""}`}>
+        <div className="w-8 font-extrabold text-sm">{k+1}</div><div className="flex-1 font-semibold truncate">{r.name}{k===idx&&" (you)"}</div><div className="font-bold text-sm">{r.pts}</div></div>)}</div>
+  </div>;
+}
+
+function Championship({id,db,board,startComp,info,name}){
+  const S=info.stages,uid=id&&id.uid;
+  const [sel,setSel]=useState(()=>(S.find(x=>x.open)||[...S].reverse().find(x=>x.past)||S[0]).id);
+  const [view,setView]=useState("main"),[paid,setPaid]=useState(()=>jl("fee",{}));
+  const rowsOf=pid=>board.filter(r=>r.scores&&r.scores[pid]&&r.scores[pid].pts>0).map(r=>({id:r.id,name:r.name||"Player",...r.scores[pid]})).sort((a,b)=>b.pts-a.pts||a.time-b.time);
+  const me=board.find(r=>uid&&r.id===uid),mineAt=x=>me&&me.scores&&me.scores[x.pid];
+  const elig=i=>{
+    if(!(uid&&db))return{ok:false,why:"Sign in with your claude.ai account to take part."};
+    if(i===0)return{ok:true};
+    const pv=S[i-1];
+    if(!pv.past)return{ok:false,why:"Opens once "+pv.name+" is complete."};
+    return rowsOf(pv.pid).slice(0,pv.cut).some(r=>r.id===uid)?{ok:true}:{ok:false,why:"Only the top "+pv.cut+" from "+pv.name+" advance."};
+  };
+  const ext=x=>({n:x.n,limit:x.limit,title:"Championship · "+x.name,levels:Array.from({length:x.n},(_,k)=>x.lv(k))});
+  const setFee=(stg,v)=>{const n={...paid,[stg]:v};setPaid(n);js("fee",n)};
+  const fin=S[4],champ=fin.past?rowsOf(fin.pid)[0]:null;
+  const cur=S.find(x=>x.id===sel),rows=rowsOf(cur.pid);
+  const days=d=>Math.ceil((d-sod(new Date()))/864e5);
+  if(view==="celebrate")return <Celebrate rows={rowsOf(S[0].pid)} uid={uid} preview={!S[0].past} Y={info.Y} name={name} cut={128} onBack={()=>setView("main")} next={`Round 1 opens ${niceD(S[1].date)}. 128 enter, 64 survive. Stage 2 costs ${FEE[2]} AED once and covers Rounds 1 to 3.`}/>;
+  return <div className="space-y-4 pop">
+    <div className="rounded-3xl p-6 text-white bg-gradient-to-br from-slate-900 via-indigo-900 to-fuchsia-700 shadow-xl">
+      <div className="text-xs font-bold tracking-widest opacity-80">MATHSPRINT CHAMPIONSHIP {info.Y}</div>
+      <h1 className="text-4xl font-extrabold leading-tight mt-2">One Chance.<br/>One Winner.</h1>
+      <p className="text-sm opacity-90 mt-3">Anyone can enter. 128 advance. 16 survive. One is crowned. No retries and no second attempts, just you, the clock and the hardest questions we can write.</p>
+      <div className="flex items-center gap-1.5 mt-4 text-xs font-bold flex-wrap">{["Everyone","128","64","32","16","👑 1"].map((x,i)=><span key={x} className="flex items-center gap-1.5"><span className="rounded-full bg-white/15 px-2.5 py-1">{x}</span>{i<5&&<span className="opacity-60">›</span>}</span>)}</div>
+      {champ&&<div className="mt-4 rounded-2xl bg-white/20 px-3 py-2 font-bold">👑 {champ.name} is the {info.Y} Champion</div>}</div>
+    <button onClick={()=>setView("celebrate")} className="w-full card p-4 flex items-center gap-3 text-left"><span className="text-2xl">🎉</span><div className="flex-1"><div className="font-bold text-sm">{S[0].past?"Stage 1 celebration":"Preview the Stage 1 celebration"}</div><div className="mut text-xs">{S[0].past?"Meet the Top 128 qualifiers":"See what qualifiers will unlock"}</div></div><Icon n="arrow" c="mut" s={18}/></button>
+    <div className="grid grid-cols-3 gap-2 text-center">{[["🏆","Winner","Trophy + certificate"],["🥈","Runner-up","Medal + certificate"],["📜","3rd to 5th","Certificate"]].map(([e,t,d])=><div key={t} className="card p-3"><div className="text-2xl">{e}</div><div className="font-bold text-xs mt-1">{t}</div><div className="mut text-[11px] leading-tight">{d}</div></div>)}</div>
+    <div className="card p-4"><div className="font-bold mb-1">Entry fees</div>
+      {[[1,"Stage 1 · Entry",""],[2,"Stage 2 · Knockout Rounds","Pay once, covers Rounds 1 to 3"],[3,"Stage 3 · Grand Final",""]].map(([n,t,d])=><div key={n} className="flex items-center gap-3 py-2 border-b bd last:border-0"><div className="flex-1"><div className="text-sm font-semibold">{t}</div>{d&&<div className="mut text-xs">{d}</div>}</div><div className="font-extrabold">{FEE[n]} AED</div></div>)}
+      <p className="mut text-xs mt-2">Fees are paid to the organisers. MathSprint does not take payments inside the app.</p></div>
+    {S.map((x,i)=>{const st=elig(i),my=mineAt(x),incl=x.id==="r2"||x.id==="r3";return <div key={x.id}>
+      {(i===0||S[i-1].stage!==x.stage)&&<div className="text-xs font-bold mut uppercase tracking-wide mb-2 mt-1">{STAGE_TITLES[x.stage]}</div>}
+      <div className={`card p-4 ${x.open?"!border-emerald-500":""}`}>
+        <div className="flex items-start gap-2"><div className="flex-1"><div className="font-bold">{x.name}</div><div className="mut text-xs">{niceD(x.date)} {x.date.getFullYear()} · {x.n} questions · {x.limit/60} min · {incl?"Included in Stage 2 fee":`${FEE[x.stage]} AED`}</div></div>
+          <span className={`text-[11px] font-bold rounded-full px-2 py-0.5 text-white ${x.open?"bg-emerald-500":x.past?"bg-indigo-500":"bg-slate-400"}`}>{x.open?"OPEN TODAY":x.past?"COMPLETE":"UPCOMING"}</span></div>
+        <p className="text-sm mut my-2">{x.blurb}</p>
+        {x.open&&st.ok&&!my&&<div className="space-y-2">
+          {!paid[x.stage]&&<label className="flex items-start gap-2 text-xs mut"><input type="checkbox" checked={!!paid[x.stage]} onChange={e=>setFee(x.stage,e.target.checked)} className="mt-0.5"/>I understand the {FEE[x.stage]} AED Stage {x.stage} entry fee is paid to the organisers{x.stage===2?" and covers Rounds 1 to 3":""}.</label>}
+          <Btn disabled={!paid[x.stage]} onClick={()=>startComp("champ",x.pid,info.Y*100+i,false,ext(x))} cls={`w-full ${Primary}`}>Enter {x.name} · {incl?"fee included":FEE[x.stage]+" AED"} · one attempt</Btn></div>}
+        {x.open&&my&&<p className="text-emerald-500 text-sm font-semibold">Attempt recorded: {my.pts} pts</p>}
+        {x.open&&!st.ok&&<p className="text-rose-500 text-sm font-semibold">{st.why}</p>}
+        {!x.open&&!x.past&&<p className="text-sm font-semibold">In {days(x.date)} day{days(x.date)===1?"":"s"}</p>}
+        {x.past&&my&&<p className="text-sm font-semibold">Your score: {my.pts} pts</p>}
+        <button onClick={()=>startComp("champ","mock"+Date.now(),Math.floor(Math.random()*90000)+10000,true,ext(x))} className="text-indigo-500 text-sm font-semibold mt-2">Try an unranked warm-up of this round</button>
+      </div></div>})}
+    <div className="flex gap-2 flex-wrap">{S.map(x=><Chip key={x.id} on={sel===x.id} onClick={()=>setSel(x.id)}>{x.short}</Chip>)}</div>
+    <div className="card overflow-hidden">{rows.length===0?<p className="mut text-sm p-4 text-center">No scores yet for {cur.name}.</p>:
+      rows.slice(0,30).map((r,k)=><div key={r.id}>
+        <div className={`flex items-center gap-3 px-4 py-3 border-b bd ${uid&&r.id===uid?"bg-indigo-500/10":""}`}>
+          <div className="w-6 font-extrabold">{k<3?["🥇","🥈","🥉"][k]:k+1}</div><div className="flex-1 min-w-0"><div className="font-semibold truncate">{r.name}{uid&&r.id===uid&&" (you)"}</div>{cur.id==="f"&&k<5&&<div className="text-[11px] text-amber-600 font-semibold">{prizeOf(k)}</div>}</div>
+          <div className="text-right"><div className="font-extrabold">{r.pts} pts</div><div className="mut text-xs">{r.correct} correct · {fmt(r.time)}</div></div></div>
+        {cur.cut>1&&k===cur.cut-1&&rows.length>cur.cut&&<div className="text-center text-[11px] font-bold text-emerald-500 py-1 bg-emerald-500/10">Qualification line: top {cur.cut} advance</div>}</div>)}</div>
+    <div className="card p-4 text-sm space-y-1"><div className="font-bold">How it works</div>
+      <p className="mut">One chance at every stage. Everyone gets the same questions, points rise with difficulty and speed, and ties are broken by total time. Your ranking decides whether you advance, and from Round 3 onward every question is Olympiad level.</p></div>
+  </div>;
+}
+
+/* ============ ABOUT US ============ */
+function About({goChamp}){
+  return <div className="space-y-5 pop">
+    <div className="text-center pt-2"><div className="flex justify-center"><Logo s={72}/></div>
+      <h1 className="text-3xl font-extrabold mt-3">About MathSprint</h1>
+      <p className="mut mt-1">Making mathematics something students look forward to.</p></div>
+    <div className="card p-5 space-y-3">
+      <div className="flex items-center gap-3"><div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-fuchsia-500 text-white grid place-items-center text-xl font-extrabold">AM</div>
+        <div><div className="font-extrabold text-lg">Arnav Madhwani</div><div className="text-sm text-indigo-500 font-semibold">Founder &amp; CEO</div></div></div>
+      <p className="text-sm leading-relaxed">Arnav is an avid mathematician himself, someone who genuinely enjoys a hard problem for its own sake. He founded MathSprint because he wants more students to feel that same pull: to see mathematics as a challenge worth chasing rather than a subject to get through.</p>
+      <p className="text-sm leading-relaxed">His goal is simple: encourage students to engage with mathematics. That means making practice feel like play, making competition feel welcoming, and making the next difficult question feel like an invitation.</p></div>
+    <div className="card p-5 space-y-2"><div className="font-bold">Our mission</div>
+      <p className="text-sm leading-relaxed mut">To inspire a generation of confident problem-solvers by turning practice into a daily habit and competition into a celebration of curiosity, for every student, in every school.</p></div>
+    <div className="grid grid-cols-1 gap-3">{[["Practice that adapts","Smart practice finds your weakest topic and trains it, from warm-ups to Olympiad-level problems."],["Competition that includes","Weekly Sunday Sprints, live quizzes you can host with a join code, and a once-a-year Championship open to every student."],["Learning that sticks","Step-by-step solutions, progressive hints and a revision planner built around your real tests."]].map(([t,d])=>
+      <div key={t} className="card p-4"><div className="font-bold text-sm">{t}</div><div className="mut text-sm mt-1">{d}</div></div>)}</div>
+    <button onClick={goChamp} className="w-full rounded-3xl p-4 text-left text-white bg-gradient-to-br from-amber-500 to-rose-600 shadow-lg flex items-center gap-3"><Icon n="crown" s={26}/><div><div className="font-extrabold">Join the Championship</div><div className="text-xs opacity-90">Your journey to the crown starts with one entry round</div></div><Icon n="arrow" c="ml-auto"/></button>
+  </div>;
+}
+
+/* ============ MORE HUB ============ */
+function More({sub,setSub,st,reset,practice,tests,setTests,done,setDone,goChamp}){
+  const items=[["stats","Progress","Accuracy, streaks and weakest topic","chart"],["plan","Revision planner","Turn your test dates into a timetable","cal"],["about","About MathSprint","Our story and founder","users"]];
+  if(!sub)return <div className="space-y-3 pop"><h1 className="text-2xl font-extrabold">More</h1>
+    {items.map(([k,t,d,ic])=><button key={k} onClick={()=>setSub(k)} className="w-full card p-4 flex items-center gap-3 text-left"><div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 grid place-items-center"><Icon n={ic}/></div><div className="flex-1"><div className="font-bold">{t}</div><div className="mut text-sm">{d}</div></div><Icon n="arrow" c="mut" s={18}/></button>)}</div>;
+  return <div className="space-y-4"><button onClick={()=>setSub(null)} className="mut text-sm font-semibold flex items-center gap-1"><span className="rotate-180 inline-block"><Icon n="arrow" s={16}/></span>Back</button>
+    {sub==="stats"&&<Dash st={st} reset={reset} practice={practice}/>}
+    {sub==="plan"&&<Plan tests={tests} setTests={setTests} done={done} setDone={setDone} practice={practice}/>}
+    
+    {sub==="about"&&<About goChamp={goChamp}/>}</div>;
+}
+
+/* ============ APP ============ */
+function App(){
+  const [st,setSt]=useState(load);
+  const [tab,setTab]=useState("train"),[screen,setScreen]=useState("home");
+  const [cfg,setCfg]=useState({topic:"Algebra",level:0,mode:"practice",seed:1});
+  const [play,setPlay]=useState(cfg),[out,setOut]=useState(null),[run,setRun]=useState(0);
+  const [tests,setTests]=useState(()=>jl("tests",[])),[done,setDone]=useState(()=>jl("done",{})),[mine,setMine]=useState(()=>jl("mine",{}));
+  const [id,setId]=useState(null),busy=useRef(false),[nick,setNick]=useState(()=>jl("nick",""));
+  const [db,setDb]=useState(null),[board,setBoard]=useState([]);
+  const info=useMemo(compInfo,[]),champ=useMemo(champInfo,[]),[sub,setSub]=useState(null),[dir,setDir]=useState(1);
+  useEffect(()=>save(st),[st]);
+  useEffect(()=>js("tests",tests),[tests]);useEffect(()=>js("done",done),[done]);useEffect(()=>js("mine",mine),[mine]);
+  useEffect(()=>js("id",id&&!id.verified?id:null),[id]);useEffect(()=>js("nick",nick),[nick]);
+  useEffect(()=>{let off=()=>{};(async()=>{try{
+    if(!window.claude)return;
+    const [u,d]=await Promise.all([window.claude.use("user"),window.claude.use("db")]);
+    if(u){const m=await u.me();if(m&&m.id)setId({uid:m.id,email:m.email,name:m.name,verified:true})}
+    if(d){setDb(d);off=d.collection("board").onSnapshot(s=>setBoard(s.docs.map(x=>({id:x.id,...x.data()}))),()=>{})}
+  }catch(e){}})();return()=>off()},[]);
+  const dn=nick||(id&&(id.name||(id.email||"").split("@")[0]))||"Player";
+  const myMine={...mine,...((board.find(r=>id&&r.id===id.uid)||{}).scores||{})};
+  const go=c=>{setPlay(c);setRun(r=>r+1);setTab("train");setScreen("play")};
+  const start=()=>{const n={...cfg,seed:Math.floor(Math.random()*900000)+100000};setCfg(n);go(n)};
+  const join=code=>{const m=code.trim().match(/^([0-7])([0-2])-(\d{3,9})$/);if(!m)return alert("Invalid code. It looks like 11-482913");go({topic:TOPICS[+m[1]],level:+m[2],mode:"sprint",seed:+m[3]})};
+  const startComp=async(kind,pid,seed,mock,ext)=>{
+    const c=ext||COMP[kind];
+    if(!mock){
+      if(busy.current||!(db&&id&&id.uid))return;busy.current=true;
+      try{const ref=db.doc("board/"+id.uid),s=await ref.get(),p=s.exists?(s.data().scores||{}):{};
+        if(p[pid]||myMine[pid]){alert("You have already used your attempt for this round.");busy.current=false;return}
+        await ref.set({name:dn,scores:{...p,[pid]:{pts:0,correct:0,time:0,started:true,ts:Date.now()}}});
+        setMine(m=>({...m,[pid]:{pts:0,correct:0,time:0,started:true}}));
+      }catch(e){alert("Could not register your attempt. Check your connection and try again.");busy.current=false;return}
+      busy.current=false;
+    }
+    go({topic:"Algebra",level:0,mode:"comp",seed:1,n:c.n,limit:c.limit,comp:{kind,id:pid,seedBase:seed,title:c.title+(mock?" (warm-up)":""),mock,levels:c.levels}})};
+  const record=(ok,secs,topic)=>setSt(s=>{const t=s.topics[topic],streak=ok?s.streak+1:0;
+    return{...s,streak,best:Math.max(s.best,streak),topics:{...s.topics,[topic]:{att:t.att+1,cor:t.cor+(ok?1:0),time:t.time+secs}}}});
+  const finish=(results,time)=>{
+    setOut({results,time});setSt(s=>({...s,sessions:s.sessions+1}));setScreen("done");
+    const c=play.comp;
+    if(c&&!c.mock&&results.length){
+      const e={pts:results.reduce((a,x)=>a+x.pts,0),correct:results.filter(x=>x.ok).length,time:Math.round(time),ts:Date.now()};
+      setMine(m=>({...m,[c.id]:e}));
+      if(db&&id&&id.uid){const ref=db.doc("board/"+id.uid);
+        ref.get().then(s=>ref.set({name:dn,scores:{...(s.exists?(s.data().scores||{}):{}),[c.id]:e}})).catch(()=>{})}
+    }
+  };
+  const playing=screen==="play";
+  const TABS=[["train","Train","home"],["live","Live","users"],["compete","Compete","trophy"],["champ","Championship","crown"],["more","More","menu"]];
+  const ORDER=TABS.map(t=>t[0]),goTab=k=>{setDir(ORDER.indexOf(k)>=ORDER.indexOf(tab)?1:-1);if(k===tab&&k==="more")setSub(null);setTab(k);if(k==="train"&&screen==="play")setScreen("home")};
+  return <div className="max-w-md mx-auto px-4 pt-5 pb-28 min-h-screen">
+    <div key={`${tab}|${screen}|${run}`} className={dir>=0?"slide-r":"slide-l"}>
+    {!playing&&!(tab==="train"&&screen==="home")&&<div className="mb-4"><Brand onClick={()=>{setTab("more");setSub("about")}}/></div>}
+    {tab==="train"&&screen==="home"&&<Home cfg={cfg} setCfg={setCfg} start={start} join={join} st={st} goLive={()=>setTab("live")}/>}
+    {tab==="train"&&playing&&<Arena key={run} cfg={play} onFinish={finish} onRecord={record} streak={st.streak}/>}
+    {tab==="train"&&screen==="done"&&<Done cfg={play} out={out} again={start} home={()=>setScreen("home")} board={()=>{setTab(play.comp&&play.comp.kind==="champ"?"champ":"compete");setScreen("home")}}/>}
+    </div>
+    <div className={tab==="live"?(dir>=0?"slide-r":"slide-l"):""} style={{display:tab==="live"?"block":"none"}}><Live/></div>
+    <div key={`${tab}|${sub}`} className={dir>=0?"slide-r":"slide-l"}>
+    {tab==="compete"&&<Compete id={id} setId={setId} db={db} info={info} mine={myMine} board={board} startComp={startComp} nick={nick} setNick={setNick} goChamp={()=>setTab("champ")}/>}
+    {tab==="champ"&&<Championship id={id} db={db} board={board} startComp={startComp} info={champ} name={dn}/>}
+    {tab==="more"&&<More sub={sub} setSub={setSub} st={st} reset={()=>setSt(blank())} practice={t=>{setCfg({...cfg,topic:t});setTab("train");setScreen("home")}} tests={tests} setTests={setTests} done={done} setDone={setDone} goChamp={()=>setTab("champ")}/>}
+    </div>
+    {!playing&&<nav className="fixed bottom-0 inset-x-0 border-t bd" style={{background:"color-mix(in srgb,var(--card) 86%,transparent)",backdropFilter:"blur(16px)",WebkitBackdropFilter:"blur(16px)",paddingBottom:"env(safe-area-inset-bottom,0px)"}}>
+      <div className="relative max-w-md mx-auto grid grid-cols-5">
+        <div className="absolute inset-y-1.5 left-0 w-1/5 px-1.5 pointer-events-none" style={{transform:`translateX(${ORDER.indexOf(tab)*100}%)`,transition:"transform .5s cubic-bezier(.34,1.56,.64,1)"}}><div className="h-full rounded-2xl bg-indigo-500/10"/></div>
+        {TABS.map(([k,l,ic])=><button key={k} onClick={()=>goTab(k)} className={`py-3 flex flex-col items-center gap-0.5 text-[11px] font-semibold ${tab===k?"text-indigo-500":"mut"}`}><span className={tab===k?"tab-on":"inline-block"}><Icon n={ic}/></span>{l}</button>)}</div></nav>}
+  </div>;
+}
+document.addEventListener("pointerdown",e=>{const b=e.target.closest&&e.target.closest("button");if(!b||b.disabled)return;const r=b.getBoundingClientRect(),d=Math.max(r.width,r.height)*2,sp=document.createElement("span");sp.className="ripple";sp.style.cssText=`width:${d}px;height:${d}px;left:${e.clientX-r.left-d/2}px;top:${e.clientY-r.top-d/2}px`;b.appendChild(sp);setTimeout(()=>sp.remove(),650)});
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
